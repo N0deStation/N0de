@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NodeStation | CPE 423 Senior Design</title>
+<meta name="description" content="NodeStation: an autonomous ground station that lands drones, swaps their batteries mechanically, and recharges the used packs.">
+<meta name="color-scheme" content="dark light">
+<link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+<script>
+  // Apply saved theme before paint to avoid a flash.
+  (function () {
+    try {
+      var t = localStorage.getItem("ns-theme");
+      if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+    } catch (e) {}
+  })();
+</script>
+<style>
+  :root {
+    --bg: #0b0f14;
+    --surface: #121821;
+    --surface-2: #19212c;
+    --border: #2a3441;
+    --text: #e6edf3;
+    --muted: #8b98a5;
+    --accent: #22d3ee;
+    --accent-2: #3b82f6;
+    --on-accent: #041016;
+    --todo: #f5a524;
+    --todo-bg: rgba(245, 165, 36, 0.08);
+    --glow: rgba(34, 211, 238, 0.16);
+    --nav-bg: rgba(11, 15, 20, 0.82);
+    --radius: 14px;
+    --maxw: 1100px;
+    --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f7f9fb; --surface: #ffffff; --surface-2: #eef2f6; --border: #d6dde5;
+      --text: #0f172a; --muted: #516071; --accent: #0e7490; --accent-2: #2563eb;
+      --on-accent: #ffffff; --todo: #b45309; --todo-bg: rgba(180, 83, 9, 0.07);
+      --glow: rgba(8, 145, 178, 0.12); --nav-bg: rgba(247, 249, 251, 0.85); color-scheme: light;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #f7f9fb; --surface: #ffffff; --surface-2: #eef2f6; --border: #d6dde5;
+    --text: #0f172a; --muted: #516071; --accent: #0e7490; --accent-2: #2563eb;
+    --on-accent: #ffffff; --todo: #b45309; --todo-bg: rgba(180, 83, 9, 0.07);
+    --glow: rgba(8, 145, 178, 0.12); --nav-bg: rgba(247, 249, 251, 0.85); color-scheme: light;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 72px; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.6 var(--font); -webkit-font-smoothing: antialiased;
+  }
+  img { max-width: 100%; height: auto; display: block; }
+  a { color: var(--accent); text-underline-offset: 3px; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
+  h1, h2, h3 { line-height: 1.2; margin: 0 0 .5em; letter-spacing: -0.01em; }
+  h2 { font-size: clamp(1.6rem, 3.5vw, 2.2rem); }
+  h3 { font-size: 1.1rem; }
+  p { margin: 0 0 1em; }
+
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding-inline: 20px; }
+  .skip { position: absolute; left: -999px; top: 8px; background: var(--accent); color: var(--on-accent); padding: 8px 12px; border-radius: 8px; z-index: 100; }
+  .skip:focus { left: 8px; }
+
+  /* TODO marker: deliberately loud so nothing ships unfilled */
+  .todo {
+    display: inline-block; font: 600 .78rem/1.4 var(--mono); color: var(--todo);
+    background: var(--todo-bg); border: 1px dashed var(--todo); border-radius: 6px;
+    padding: 2px 8px; vertical-align: middle;
+  }
+  .todo-block { display: table; margin-top: .6em; }
+
+  /* Nav */
+  .nav {
+    position: sticky; top: 0; z-index: 50; background: var(--nav-bg);
+    backdrop-filter: saturate(1.4) blur(10px); -webkit-backdrop-filter: saturate(1.4) blur(10px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav .wrap { display: flex; align-items: center; gap: 16px; height: 60px; }
+  .brand { display: flex; align-items: center; gap: 10px; color: var(--text); text-decoration: none; font-weight: 700; }
+  .brand img { width: 28px; height: 28px; }
+  .nav nav { margin-left: auto; min-width: 0; }
+  .nav ul { display: flex; gap: 4px; list-style: none; margin: 0; padding: 0; }
+  .nav ul a { display: block; padding: 6px 10px; border-radius: 8px; color: var(--muted); text-decoration: none; font-size: .92rem; white-space: nowrap; }
+  .nav ul a:hover, .nav ul a.active { color: var(--text); background: var(--surface-2); }
+  .theme-btn {
+    flex: none; width: 38px; height: 38px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text); cursor: pointer; display: grid; place-items: center;
+  }
+  .theme-btn svg { width: 18px; height: 18px; }
+  @media (max-width: 860px) { .nav nav { display: none; } .theme-btn { margin-left: auto; } }
+
+  /* Sections */
+  section { padding-block: 80px; border-bottom: 1px solid var(--border); }
+  .eyebrow { font: 600 .8rem/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+  .lead { color: var(--muted); font-size: 1.1rem; max-width: 68ch; }
+  .grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); margin-top: 32px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; }
+  .card p { color: var(--muted); margin: 0; }
+  .icon { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; margin-bottom: 14px;
+    background: linear-gradient(135deg, var(--glow), transparent); border: 1px solid var(--border); color: var(--accent); }
+  .icon svg { width: 22px; height: 22px; }
+
+  /* Hero */
+  .hero { position: relative; overflow: hidden; padding-block: 96px 88px; }
+  .hero::before {
+    content: ""; position: absolute; left: -10%; right: -10%; top: -40%; height: 120%; pointer-events: none;
+    background: radial-gradient(closest-side, var(--glow), transparent 70%);
+  }
+  .hero::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .35;
+    background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 44px 44px;
+    mask-image: radial-gradient(ellipse at 50% 0%, #000 20%, transparent 70%);
+    -webkit-mask-image: radial-gradient(ellipse at 50% 0%, #000 20%, transparent 70%);
+  }
+  .hero .wrap { position: relative; z-index: 1; }
+  .hero h1 { font-size: clamp(2.6rem, 8vw, 4.6rem); letter-spacing: -0.03em; margin-bottom: 16px; }
+  .grad { background: linear-gradient(90deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .tagline { font-size: clamp(1.1rem, 2.4vw, 1.35rem); color: var(--text); max-width: 60ch; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px 20px; color: var(--muted); font-size: .95rem; margin: 20px 0 8px; }
+  .meta strong { color: var(--text); font-weight: 600; }
+  .team-line { color: var(--muted); font-size: .95rem; margin-bottom: 28px; }
+  .btns { display: flex; flex-wrap: wrap; gap: 12px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px; padding: 11px 18px; border-radius: 10px;
+    font-weight: 600; text-decoration: none; border: 1px solid var(--border); color: var(--text); background: var(--surface);
+    transition: border-color .15s, transform .15s;
+  }
+  .btn:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .btn.primary { background: linear-gradient(90deg, var(--accent), var(--accent-2)); color: var(--on-accent); border-color: transparent; }
+  .btn svg { width: 18px; height: 18px; }
+  .btn[aria-disabled="true"] { opacity: .7; pointer-events: none; }
+
+  /* Demo */
+  .video {
+    position: relative; aspect-ratio: 16 / 9; max-width: 100%; margin-top: 32px; border-radius: var(--radius); overflow: hidden;
+    background: var(--surface); border: 1px solid var(--border); display: grid; place-items: center; text-align: center; padding: 20px;
+  }
+  .video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .video .play { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; margin: 0 auto 12px; border: 2px solid var(--border); color: var(--muted); }
+  .video .play svg { width: 26px; height: 26px; }
+  .gallery { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); margin-top: 18px; }
+  .gallery figure { margin: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .gallery img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
+  .gallery figcaption { padding: 10px 12px; color: var(--muted); font-size: .9rem; }
+  .shot-ph { aspect-ratio: 4 / 3; display: grid; place-items: center; padding: 12px; }
+
+  /* How it works */
+  .diagram { margin: 32px 0 0; }
+  .diagram img { width: 100%; border-radius: var(--radius); border: 1px solid var(--border); }
+  .diagram figcaption { color: var(--muted); font-size: .9rem; margin-top: 10px; }
+  .subhead { margin-top: 44px; font-size: 1.3rem; }
+  .stack { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); margin-top: 18px; }
+  .stack .card h4 { font: 600 .8rem/1.2 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
+
+  /* Results */
+  .stats { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); margin-top: 32px; }
+  .stat .value { font: 700 2.2rem/1.1 var(--font); color: var(--text); margin-bottom: 6px; }
+  .stat .label { color: var(--muted); font-size: .95rem; }
+  .checklist { list-style: none; padding: 0; margin: 28px 0 0; display: grid; gap: 10px; }
+  .checklist li { display: flex; gap: 12px; align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; color: var(--muted); }
+
+  /* Team */
+  .team { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); margin-top: 32px; }
+  .member { text-align: center; }
+  .avatar {
+    width: 112px; height: 112px; border-radius: 50%; margin: 4px auto 16px; object-fit: cover;
+    display: grid; place-items: center; font: 700 2rem/1 var(--font); color: var(--on-accent);
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  }
+  .member .role { color: var(--muted); margin-bottom: 12px; }
+  .socials { display: flex; justify-content: center; gap: 10px; }
+  .socials a { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 9px; border: 1px solid var(--border); color: var(--muted); }
+  .socials a:hover { color: var(--accent); border-color: var(--accent); }
+  .socials svg { width: 18px; height: 18px; }
+  .advisor { margin-top: 18px; }
+
+  /* Resources */
+  .resources { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); margin-top: 32px; }
+  .res { display: flex; gap: 14px; align-items: center; text-decoration: none; color: var(--text); transition: border-color .15s; }
+  a.res:hover { border-color: var(--accent); }
+  .res .icon { margin: 0; flex: none; }
+  .res small { display: block; color: var(--muted); overflow-wrap: anywhere; }
+
+  footer { padding-block: 36px; color: var(--muted); font-size: .9rem; }
+  footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; }
+
+  @media (max-width: 560px) { section { padding-block: 60px; } .hero { padding-block: 64px 56px; } }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .btn, .res { transition: none; } .btn:hover { transform: none; } }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="#top"><img src="assets/logo.svg" alt="" width="28" height="28">NodeStation</a>
+    <nav aria-label="Sections">
+      <ul>
+        <li><a href="#problem">Problem</a></li>
+        <li><a href="#solution">Solution</a></li>
+        <li><a href="#demo">Demo</a></li>
+        <li><a href="#how">How it works</a></li>
+        <li><a href="#results">Results</a></li>
+        <li><a href="#team">Team</a></li>
+        <li><a href="#resources">Resources</a></li>
+      </ul>
+    </nav>
+    <button class="theme-btn" id="themeBtn" type="button" aria-label="Toggle light or dark theme">
+      <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"></svg>
+    </button>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- 1. HERO -->
+  <section class="hero" id="top">
+    <div class="wrap">
+      <p class="eyebrow">CPE 423 Senior Design</p>
+      <h1><span class="grad">NodeStation</span></h1>
+      <p class="tagline">An autonomous ground station that lands drones, swaps their batteries mechanically, and recharges the used packs, so drone fleets can keep operating without human intervention.</p>
+      <div class="meta">
+        <span><strong>Stevens Institute of Technology</strong></span>
+        <span>Fall 2026 – Spring 2027</span>
+        <span>Advisor: <strong>Ying Wang</strong></span>
+      </div>
+      <p class="team-line">Team: <span id="heroTeam"></span></p>
+      <div class="btns">
+        <a class="btn primary" href="https://github.com/N0deStation/N0de" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.56-.29-5.25-1.28-5.25-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.42-2.7 5.4-5.27 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z"/></svg>
+          GitHub repo
+        </a>
+        <a class="btn" id="heroReport" href="assets/report.pdf">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>
+          Final report
+        </a>
+        <a class="btn" id="heroVideo" href="#demo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m10 8 6 4-6 4z"/></svg>
+          Demo video
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. PROBLEM & MOTIVATION -->
+  <section id="problem">
+    <div class="wrap">
+      <p class="eyebrow">Problem &amp; motivation</p>
+      <h2>Drone fleets stop when their batteries do</h2>
+      <p class="lead">Battery life limits how long a drone can stay in the air. Keeping a fleet flying usually means a person has to land each drone, swap or charge its battery, and send it back out.</p>
+      <!-- TODO: add sourced statistics (typical flight time, turnaround time, labor cost) with citations. -->
+      <span class="todo todo-block">TODO: add sourced stats and citations for the problem statement</span>
+      <div class="grid">
+        <article class="card">
+          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="7" width="18" height="10" rx="2"/><path d="M22 11v2M6 11v2"/></svg></div>
+          <h3>Limited flight time</h3>
+          <p>A single pack only supports a short mission before the drone has to come down.</p>
+        </article>
+        <article class="card">
+          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a6.5 6.5 0 0 1 13 0"/></svg></div>
+          <h3>Manual battery handling</h3>
+          <p>Swapping and charging packs by hand ties every flight cycle to an operator on site.</p>
+        </article>
+        <article class="card">
+          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
+          <h3>Downtime between missions</h3>
+          <p>While a drone waits on a person to service it, it isn't flying, which limits continuous operations.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. SOLUTION -->
+  <section id="solution">
+    <div class="wrap">
+      <p class="eyebrow">Our solution</p>
+      <h2>A ground station that keeps drones in the air</h2>
+      <p class="lead">NodeStation is an autonomous ground station. A drone lands on it, a mechanism swaps the depleted battery for a charged one, and the station recharges the used pack for the next cycle, with no person in the loop.</p>
+      <div class="grid">
+        <article class="card">
+          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg></div>
+          <h3>Autonomous landing</h3>
+          <p>The drone lands on the station without a pilot.</p>
+          <span class="todo todo-block">TODO: how landing and alignment work</span>
+        </article>
+        <article class="card">
+          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3l4 4-4 4M21 7H9M7 21l-4-4 4-4M3 17h12"/></svg></div>
+          <h3>Mechanical battery swap</h3>
+          <p>A mechanism exchanges the depleted pack for a charged one.</p>
+          <span class="todo todo-block">TODO: mechanism type and swap sequence</span>
+        </article>
+        <article class="card">
+          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg></div>
+          <h3>Pack recharging</h3>
+          <p>Used packs are recharged on the station for the next swap.</p>
+          <span class="todo todo-block">TODO: charging method and pack capacity</span>
+        </article>
+        <article class="card">
+          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></div>
+          <h3>Continuous operation</h3>
+          <p>Drones return to their mission without waiting on a person.</p>
+          <span class="todo todo-block">TODO: fleet or scheduling details, if any</span>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. DEMO -->
+  <section id="demo">
+    <div class="wrap">
+      <p class="eyebrow">Demo</p>
+      <h2>See it in action</h2>
+      <div class="video" id="video"></div>
+      <div class="gallery" id="gallery"></div>
+    </div>
+  </section>
+
+  <!-- 5. HOW IT WORKS -->
+  <section id="how">
+    <div class="wrap">
+      <p class="eyebrow">How it works</p>
+      <h2>System architecture</h2>
+      <p class="lead">The diagram below is a placeholder showing the subsystems implied by the project summary.</p>
+      <span class="todo todo-block">TODO: replace the placeholder diagram and confirm the subsystem breakdown</span>
+      <figure class="diagram">
+        <img src="assets/architecture.svg" width="960" height="440" alt="Placeholder architecture diagram: drone, landing pad, battery swap mechanism, and charging bay, all connected to a station controller." loading="lazy">
+        <figcaption>Placeholder block diagram. Replace docs/assets/architecture.svg with the real architecture.</figcaption>
+      </figure>
+      <h3 class="subhead">Tech stack</h3>
+      <div class="stack">
+        <div class="card"><h4>Controller</h4><span class="todo">TODO: MCU / single-board computer</span></div>
+        <div class="card"><h4>Firmware &amp; software</h4><span class="todo">TODO: languages, frameworks</span></div>
+        <div class="card"><h4>Swap mechanism</h4><span class="todo">TODO: motors, actuators, sensors</span></div>
+        <div class="card"><h4>Charging</h4><span class="todo">TODO: charger hardware, battery chemistry</span></div>
+        <div class="card"><h4>Drone platform</h4><span class="todo">TODO: airframe, flight controller</span></div>
+        <div class="card"><h4>Communication</h4><span class="todo">TODO: link between drone and station</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. RESULTS -->
+  <section id="results">
+    <div class="wrap">
+      <p class="eyebrow">Results</p>
+      <h2>Testing &amp; outcomes</h2>
+      <p class="lead">Measured results from testing will go here.</p>
+      <span class="todo todo-block">TODO: fill every metric below from real test data, and rename labels to match what you actually measured</span>
+      <div class="stats">
+        <div class="card stat"><div class="value">—</div><div class="label">Battery swap time</div></div>
+        <div class="card stat"><div class="value">—</div><div class="label">Landing success rate</div></div>
+        <div class="card stat"><div class="value">—</div><div class="label">Pack recharge time</div></div>
+        <div class="card stat"><div class="value">—</div><div class="label">Consecutive unattended cycles</div></div>
+      </div>
+      <ul class="checklist">
+        <li><span class="todo">TODO</span> Test outcome: describe the test and the result</li>
+        <li><span class="todo">TODO</span> Test outcome: describe the test and the result</li>
+        <li><span class="todo">TODO</span> Known limitations and future work</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 7. TEAM -->
+  <section id="team">
+    <div class="wrap">
+      <p class="eyebrow">Team</p>
+      <h2>Who built it</h2>
+      <div class="team" id="teamGrid"></div>
+      <div class="card advisor"><strong>Advisor / sponsor:</strong> Ying Wang</div>
+    </div>
+  </section>
+
+  <!-- 8. RESOURCES -->
+  <section id="resources">
+    <div class="wrap">
+      <p class="eyebrow">Resources</p>
+      <h2>Documents &amp; code</h2>
+      <div class="resources" id="resourceList"></div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>NodeStation · CPE 423 Senior Design · Stevens Institute of Technology · 2026–2027</span>
+    <span>Built with plain HTML, CSS &amp; JS</span>
+  </div>
+</footer>
+
+<script>
+/* ==========================================================================
+   EDIT YOUR CONTENT HERE
+   Keep every path relative (no leading "/") so the site works under /N0de/.
+   ========================================================================== */
+
+// YouTube video ID, e.g. "abc123XYZ" from https://youtu.be/abc123XYZ
+const DEMO_VIDEO_ID = ""; // TODO: add demo video ID
+
+// Screenshots or GIFs in docs/assets/, e.g. { src: "assets/demo.gif", caption: "Full swap cycle" }
+const GALLERY = []; // TODO: add demo screenshots or GIFs
+
+// Team members. photo: "assets/team/name.jpg" (optional). linkedin / github: full URLs (optional).
+const TEAM = [ // TODO: replace with real team members
+  { name: "TODO Name", role: "TODO Role", photo: "", linkedin: "", github: "" },
+  { name: "TODO Name", role: "TODO Role", photo: "", linkedin: "", github: "" },
+  { name: "TODO Name", role: "TODO Role", photo: "", linkedin: "", github: "" },
+  { name: "TODO Name", role: "TODO Role", photo: "", linkedin: "", github: "" },
+];
+
+// Set ready: true once the file exists in docs/assets/.
+const RESOURCES = [
+  { title: "Final report", desc: "PDF", href: "assets/report.pdf", ready: false, icon: "doc" },    // TODO
+  { title: "Poster",       desc: "PDF", href: "assets/poster.pdf", ready: false, icon: "image" },  // TODO
+  { title: "Slides",       desc: "PDF", href: "assets/slides.pdf", ready: false, icon: "slides" }, // TODO
+  { title: "Source code",  desc: "github.com/N0deStation/N0de", href: "https://github.com/N0deStation/N0de", ready: true, icon: "code" },
+];
+
+/* ========================================================================== */
+
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  };
+  var isTodo = function (s) { return !s || /^TODO/i.test(s); };
+  var todo = function (label) { return '<span class="todo">' + esc(label) + "</span>"; };
+
+  var ICONS = {
+    doc: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/>',
+    image: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/>',
+    slides: '<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>',
+    play: '<path d="m8 5 11 7-11 7z"/>',
+    code: '<path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/>',
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+    moon: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
+    linkedin: '<path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/>',
+    github: '<path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.9a3.4 3.4 0 0 0-.9-2.6c3.1-.3 6.4-1.5 6.4-7A5.4 5.4 0 0 0 20 4.8 5 5 0 0 0 19.9 1S18.7.7 16 2.5a13.4 13.4 0 0 0-7 0C6.3.7 5.1 1 5.1 1A5 5 0 0 0 5 4.8a5.4 5.4 0 0 0-1.5 3.7c0 5.4 3.3 6.6 6.4 7a3.4 3.4 0 0 0-.9 2.6V22"/>'
+  };
+  var svg = function (name) {
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICONS[name] + "</svg>";
+  };
+
+  // Theme toggle: follows the OS until the visitor picks one, then remembers it.
+  var root = document.documentElement;
+  var mq = window.matchMedia("(prefers-color-scheme: light)");
+  var current = function () { return root.getAttribute("data-theme") || (mq.matches ? "light" : "dark"); };
+  var paintIcon = function () {
+    var dark = current() === "dark";
+    $("themeIcon").innerHTML = dark ? ICONS.sun : ICONS.moon;
+    $("themeBtn").setAttribute("aria-label", dark ? "Switch to light theme" : "Switch to dark theme");
+  };
+  $("themeBtn").addEventListener("click", function () {
+    var next = current() === "dark" ? "light" : "dark";
+    root.setAttribute("data-theme", next);
+    try { localStorage.setItem("ns-theme", next); } catch (e) {}
+    paintIcon();
+  });
+  if (mq.addEventListener) mq.addEventListener("change", paintIcon);
+  paintIcon();
+
+  // Hero: team names
+  var named = TEAM.filter(function (m) { return !isTodo(m.name); });
+  $("heroTeam").innerHTML = named.length
+    ? named.map(function (m) { return esc(m.name); }).join(" · ")
+    : todo("TODO: team member names");
+
+  // Hero: report button
+  var report = RESOURCES.filter(function (r) { return r.icon === "doc"; })[0];
+  if (!report || !report.ready) {
+    $("heroReport").setAttribute("aria-disabled", "true");
+    $("heroReport").setAttribute("tabindex", "-1");
+    $("heroReport").insertAdjacentHTML("beforeend", " " + todo("TODO"));
+  }
+
+  // Hero: video button
+  if (DEMO_VIDEO_ID) {
+    $("heroVideo").href = "https://youtu.be/" + encodeURIComponent(DEMO_VIDEO_ID);
+    $("heroVideo").target = "_blank";
+    $("heroVideo").rel = "noopener";
+  } else {
+    $("heroVideo").insertAdjacentHTML("beforeend", " " + todo("TODO"));
+  }
+
+  // Demo video: privacy-enhanced embed, only loaded when an ID is set
+  $("video").innerHTML = DEMO_VIDEO_ID
+    ? '<iframe src="https://www.youtube-nocookie.com/embed/' + encodeURIComponent(DEMO_VIDEO_ID) + '" title="NodeStation demo video" loading="lazy" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen></iframe>'
+    : '<div><div class="play">' + svg("play") + "</div>" + todo("TODO: set DEMO_VIDEO_ID to embed the demo video") + "</div>";
+
+  // Gallery
+  $("gallery").innerHTML = GALLERY.length
+    ? GALLERY.map(function (g) {
+        return '<figure><img src="' + esc(g.src) + '" alt="' + esc(g.caption || "NodeStation demo screenshot") + '" loading="lazy">' +
+          (g.caption ? "<figcaption>" + esc(g.caption) + "</figcaption>" : "") + "</figure>";
+      }).join("")
+    : [1, 2, 3].map(function () { return '<figure><div class="shot-ph">' + todo("TODO: screenshot or GIF") + "</div></figure>"; }).join("");
+
+  // Team cards
+  var initials = function (n) {
+    return isTodo(n) ? "?" : n.trim().split(/\s+/).map(function (p) { return p[0]; }).slice(0, 2).join("").toUpperCase();
+  };
+  $("teamGrid").innerHTML = TEAM.map(function (m) {
+    var avatar = m.photo
+      ? '<img class="avatar" src="' + esc(m.photo) + '" alt="Photo of ' + esc(m.name) + '" width="112" height="112" loading="lazy">'
+      : '<div class="avatar" aria-hidden="true">' + esc(initials(m.name)) + "</div>";
+    var links = [
+      m.linkedin ? '<a href="' + esc(m.linkedin) + '" target="_blank" rel="noopener" aria-label="' + esc(m.name) + ' on LinkedIn">' + svg("linkedin") + "</a>" : "",
+      m.github ? '<a href="' + esc(m.github) + '" target="_blank" rel="noopener" aria-label="' + esc(m.name) + ' on GitHub">' + svg("github") + "</a>" : ""
+    ].join("");
+    return '<article class="card member">' + avatar +
+      "<h3>" + (isTodo(m.name) ? todo(m.name || "TODO Name") : esc(m.name)) + "</h3>" +
+      '<p class="role">' + (isTodo(m.role) ? todo(m.role || "TODO Role") : esc(m.role)) + "</p>" +
+      (links ? '<div class="socials">' + links + "</div>" : "") +
+      "</article>";
+  }).join("");
+
+  // Resources
+  $("resourceList").innerHTML = RESOURCES.map(function (r) {
+    var external = /^https?:/.test(r.href);
+    var inner = '<div class="icon">' + svg(r.icon) + "</div><div><strong>" + esc(r.title) + "</strong> " +
+      (r.ready ? "" : todo("TODO")) + "<small>" + esc(r.desc) + "</small></div>";
+    return r.ready
+      ? '<a class="card res" href="' + esc(r.href) + '"' + (external ? ' target="_blank" rel="noopener"' : "") + ">" + inner + "</a>"
+      : '<div class="card res">' + inner + "</div>";
+  }).join("");
+
+  // Highlight the nav link for the section in view
+  var navLinks = Array.prototype.slice.call(document.querySelectorAll(".nav ul a"));
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        navLinks.forEach(function (a) { a.classList.toggle("active", a.getAttribute("href") === "#" + e.target.id); });
+      });
+    }, { rootMargin: "-45% 0px -50% 0px" });
+    Array.prototype.forEach.call(document.querySelectorAll("main section[id]"), function (s) { io.observe(s); });
+  }
+})();
+</script>
+</body>
+</html>

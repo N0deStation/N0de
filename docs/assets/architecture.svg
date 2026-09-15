@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 440" role="img" aria-labelledby="t d" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif">
+  <title id="t">NodeStation placeholder architecture diagram</title>
+  <desc id="d">Placeholder block diagram. A drone lands on the landing pad, the battery swap mechanism exchanges its pack, and the charging bay recharges used packs. A station controller coordinates all three. Replace with the team's real diagram.</desc>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 10 5 0 10z" fill="#22d3ee"/>
+    </marker>
+  </defs>
+  <rect width="960" height="440" rx="18" fill="#121821"/>
+  <g fill="#0b0f14" stroke="#2a3441" stroke-width="2">
+    <rect x="40"  y="60" width="180" height="96" rx="12"/>
+    <rect x="280" y="60" width="180" height="96" rx="12"/>
+    <rect x="520" y="60" width="180" height="96" rx="12"/>
+    <rect x="760" y="60" width="160" height="96" rx="12"/>
+  </g>
+  <rect x="280" y="270" width="420" height="100" rx="12" fill="#0b0f14" stroke="#22d3ee" stroke-width="2"/>
+  <g fill="#e6edf3" font-size="20" font-weight="600" text-anchor="middle">
+    <text x="130" y="104">Drone</text>
+    <text x="370" y="104">Landing pad</text>
+    <text x="610" y="104">Battery swap</text>
+    <text x="840" y="104">Charging bay</text>
+    <text x="490" y="314">Station controller</text>
+  </g>
+  <g fill="#f5a524" font-size="13" font-family="ui-monospace, Consolas, monospace" text-anchor="middle">
+    <text x="130" y="132">TODO: confirm</text>
+    <text x="370" y="132">TODO: sensing / alignment</text>
+    <text x="610" y="132">TODO: mechanism</text>
+    <text x="840" y="132">TODO: charger IC</text>
+    <text x="490" y="344">TODO: MCU / SBC, firmware, comms</text>
+  </g>
+  <g stroke="#22d3ee" stroke-width="2.5" fill="none" marker-end="url(#a)">
+    <path d="M220 108h56"/>
+    <path d="M460 108h56"/>
+    <path d="M700 108h56"/>
+  </g>
+  <g stroke="#3b82f6" stroke-width="2" stroke-dasharray="6 6" fill="none">
+    <path d="M370 156v110"/>
+    <path d="M610 156v110"/>
+    <path d="M840 156v164H704"/>
+    <path d="M130 156v164h146"/>
+  </g>
+  <text x="480" y="414" fill="#8b98a5" font-size="14" text-anchor="middle">Placeholder diagram. Replace docs/assets/architecture.svg with the real system architecture.</text>
+</svg>
