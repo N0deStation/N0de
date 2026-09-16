@@ -164,7 +164,9 @@
 
   /* Results */
   .stats { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); margin-top: 32px; }
-  .stat .value { font: 700 2.2rem/1.1 var(--font); color: var(--text); margin-bottom: 6px; }
+  .stat .value { font: 700 clamp(2.4rem, 5vw, 3.2rem)/1.1 var(--font); margin-bottom: 6px; letter-spacing: -0.02em;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .pull { font-size: 1.35rem; font-weight: 700; color: var(--text); margin-top: 1.2em; }
   .stat .label { color: var(--muted); font-size: .95rem; }
   .checklist { list-style: none; padding: 0; margin: 28px 0 0; display: grid; gap: 10px; }
   .checklist li { display: flex; gap: 12px; align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; color: var(--muted); }
@@ -261,7 +263,7 @@
       <p class="lead">The entire industry is fundamentally limited by battery life.</p>
       <p class="lead">Despite billions invested in aircraft technology, most commercial drones are paralyzed by a strict 15-mile limit. Pushing beyond that radius introduces the severe risk of mid-flight battery failure, destroying delivery reliability. Furthermore, standard charging takes hours. This forces drones to sit idle on the ground, creating extensive fleet downtime and crippling the economics of rapid delivery.</p>
       <p class="lead">Scaling the future of delivery shouldn't require building complicated, heavily staffed launch hubs in our backyards. It should rely on a seamless, compact network.</p>
-      <p class="lead">That is why we built Node.</p>
+      <p class="pull">That is why we built Node.</p>
       <h3 class="subhead">By the statistics</h3>
       <div class="stats">
         <div class="card stat"><div class="label">MK27 drones only have a max battery life of</div><div class="value">15 miles</div><div class="label">one way trip</div></div>
