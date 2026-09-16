@@ -206,7 +206,7 @@
     <a class="brand" href="#top"><img src="assets/logo.svg" alt="" width="28" height="28">NodeStation</a>
     <nav aria-label="Sections">
       <ul>
-        <li><a href="#problem">Problem</a></li>
+        <li><a href="#problem">Mission</a></li>
         <li><a href="#solution">Solution</a></li>
         <li><a href="#demo">Demo</a></li>
         <li><a href="#how">How it works</a></li>
@@ -255,43 +255,36 @@
   <!-- 2. PROBLEM & MOTIVATION -->
   <section id="problem">
     <div class="wrap">
-      <p class="eyebrow">Problem &amp; motivation</p>
-      <h2>Drone fleets stop when their batteries do</h2>
-      <p class="lead">Battery life limits how long a drone can stay in the air. Keeping a fleet flying usually means a person has to land each drone, swap or charge its battery, and send it back out.</p>
-      <!-- TODO: add sourced statistics (typical flight time, turnaround time, labor cost) with citations. -->
-      <span class="todo todo-block">TODO: add sourced stats and citations for the problem statement</span>
-      <div class="grid">
-        <article class="card">
-          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="7" width="18" height="10" rx="2"/><path d="M22 11v2M6 11v2"/></svg></div>
-          <h3>Limited flight time</h3>
-          <p>A single pack only supports a short mission before the drone has to come down.</p>
-        </article>
-        <article class="card">
-          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a6.5 6.5 0 0 1 13 0"/></svg></div>
-          <h3>Manual battery handling</h3>
-          <p>Swapping and charging packs by hand ties every flight cycle to an operator on site.</p>
-        </article>
-        <article class="card">
-          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
-          <h3>Downtime between missions</h3>
-          <p>While a drone waits on a person to service it, it isn't flying, which limits continuous operations.</p>
-        </article>
+      <p class="eyebrow">Our mission &amp; story</p>
+      <h2>The sky is still empty</h2>
+      <p class="lead">You have likely heard about the immense promise of drone delivery. But if you look up, the sky is empty.</p>
+      <p class="lead">The entire industry is fundamentally limited by battery life.</p>
+      <p class="lead">Despite billions invested in aircraft technology, most commercial drones are paralyzed by a strict 15-mile limit. Pushing beyond that radius introduces the severe risk of mid-flight battery failure, destroying delivery reliability. Furthermore, standard charging takes hours. This forces drones to sit idle on the ground, creating extensive fleet downtime and crippling the economics of rapid delivery.</p>
+      <p class="lead">Scaling the future of delivery shouldn't require building complicated, heavily staffed launch hubs in our backyards. It should rely on a seamless, compact network.</p>
+      <p class="lead">That is why we built Node.</p>
+      <h3 class="subhead">By the statistics</h3>
+      <div class="stats">
+        <div class="card stat"><div class="label">MK27 drones only have a max battery life of</div><div class="value">15 miles</div><div class="label">one way trip</div></div>
+        <div class="card stat"><div class="label">Amazon has completed over</div><div class="value">2 million</div><div class="label">deliveries in 2025 alone</div></div>
       </div>
+      <span class="todo todo-block">TODO: add citations for these stats</span>
     </div>
   </section>
 
   <!-- 3. SOLUTION -->
   <section id="solution">
     <div class="wrap">
-      <p class="eyebrow">Our solution</p>
-      <h2>A ground station that keeps drones in the air</h2>
-      <p class="lead">NodeStation is an autonomous ground station. A drone lands on it, a mechanism swaps the depleted battery for a charged one, and the station recharges the used pack for the next cycle, with no person in the loop.</p>
+      <p class="eyebrow">Why we're different</p>
+      <h2>Swap the battery, skip the wait</h2>
+      <p class="lead">We have all seen electric vehicle charging stations expand all over the country; we decided to take the concept to the skies. But we are taking a different route: instead of forcing the drone to sit and wait for its battery to charge, our stations physically remove the depleted battery and replace it with a fully charged one for significantly less downtime.</p>
+      <p class="lead">As four graduating engineering students, we analyzed the UAV market and recognized a critical gap in this industry. Most businesses focus on traditional charging stations rather than what we envision at Node; we are engineering a faster way for the drones to take off, bypassing the wait time.</p>
+      <h3 class="subhead">Our goal</h3>
+      <p class="lead">The goal of this senior design project is to build a working prototype station that will swap a drone's battery without any (if possible) human involvement. The station will guide the drone to land using sensors and cameras, then swap the drone's depleted battery for one that is sufficiently charged. This will be paired with a monitoring system that will report and track landing records, station status, and battery levels. We're targeting a complete land–swap–relaunch cycle in a controlled indoor environment.</p>
       <div class="grid">
         <article class="card">
           <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg></div>
           <h3>Autonomous landing</h3>
-          <p>The drone lands on the station without a pilot.</p>
-          <span class="todo todo-block">TODO: how landing and alignment work</span>
+          <p>Sensors and cameras guide the drone onto the station.</p>
         </article>
         <article class="card">
           <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3l4 4-4 4M21 7H9M7 21l-4-4 4-4M3 17h12"/></svg></div>
@@ -306,10 +299,9 @@
           <span class="todo todo-block">TODO: charging method and pack capacity</span>
         </article>
         <article class="card">
-          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></div>
-          <h3>Continuous operation</h3>
-          <p>Drones return to their mission without waiting on a person.</p>
-          <span class="todo todo-block">TODO: fleet or scheduling details, if any</span>
+          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/></svg></div>
+          <h3>Monitoring</h3>
+          <p>Reports and tracks landing records, station status, and battery levels.</p>
         </article>
       </div>
     </div>
@@ -410,11 +402,11 @@ const DEMO_VIDEO_ID = ""; // TODO: add demo video ID
 const GALLERY = []; // TODO: add demo screenshots or GIFs
 
 // Team members. photo: "assets/team/name.jpg" (optional). linkedin / github: full URLs (optional).
-const TEAM = [ // TODO: replace with real team members
-  { name: "TODO Name", role: "TODO Role", photo: "", linkedin: "", github: "" },
-  { name: "TODO Name", role: "TODO Role", photo: "", linkedin: "", github: "" },
-  { name: "TODO Name", role: "TODO Role", photo: "", linkedin: "", github: "" },
-  { name: "TODO Name", role: "TODO Role", photo: "", linkedin: "", github: "" },
+const TEAM = [ // TODO: add photos
+  { name: "Andy Lian",    role: "Computer Engineering",   photo: "", linkedin: "", github: "" },
+  { name: "Billy Ye",     role: "Software Engineering",   photo: "", linkedin: "", github: "" },
+  { name: "Jeffrey Ober", role: "Computer Engineering",   photo: "", linkedin: "", github: "" },
+  { name: "Orion Wang",   role: "Mechanical Engineering", photo: "", linkedin: "", github: "" },
 ];
 
 // Set ready: true once the file exists in docs/assets/.
