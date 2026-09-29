@@ -166,6 +166,9 @@
   .stats { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); margin-top: 32px; }
   .stat .value { font: 700 clamp(2.4rem, 5vw, 3.2rem)/1.1 var(--font); margin-bottom: 6px; letter-spacing: -0.02em;
     background: linear-gradient(90deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .abstract { max-width: 78ch; margin-top: 18px; border-left: 3px solid var(--accent); }
+  .abstract p { color: var(--text); font-size: 1.05rem; }
+  .abstract p + p { margin-top: 1em; }
   .pull { font-size: 1.35rem; font-weight: 700; color: var(--text); margin-top: 1.2em; }
   .stat .label { color: var(--muted); font-size: .95rem; }
   .checklist { list-style: none; padding: 0; margin: 28px 0 0; display: grid; gap: 10px; }
@@ -280,8 +283,12 @@
       <h2>Swap the battery, skip the wait</h2>
       <p class="lead">We have all seen electric vehicle charging stations expand all over the country; we decided to take the concept to the skies. But we are taking a different route: instead of forcing the drone to sit and wait for its battery to charge, our stations physically remove the depleted battery and replace it with a fully charged one for significantly less downtime.</p>
       <p class="lead">As four graduating engineering students, we analyzed the UAV market and recognized a critical gap in this industry. Most businesses focus on traditional charging stations rather than what we envision at Node; we are engineering a faster way for the drones to take off, bypassing the wait time.</p>
-      <h3 class="subhead">Our goal</h3>
-      <p class="lead">The goal of this senior design project is to build a working prototype station that will swap a drone's battery without any (if possible) human involvement. The station will guide the drone to land using sensors and cameras, then swap the drone's depleted battery for one that is sufficiently charged. This will be paired with a monitoring system that will report and track landing records, station status, and battery levels. We're targeting a complete land–swap–relaunch cycle in a controlled indoor environment.</p>
+      <h3 class="subhead">Project description</h3>
+      <div class="card abstract">
+        <p>The rise of autonomous drone technology has enabled many use case scenarios; however, they are very limited by their battery longevity, thus limiting their capabilities. By providing a way to extend a drone’s travel distance without sacrificing time, drones will be able to expand their usage capabilities without being limited by their battery size.</p>
+        <p>To address this, the goal of this senior design project is to build a working prototype station that will swap a drone's battery without any (if possible) human involvement. The station will guide the drone to land using sensors and cameras, then swap the drone's depleted battery for one that is sufficiently charged. This will be paired with a monitoring system that will report and track landing records, station status, and battery levels.</p>
+        <p>By the end of the project, the team is aiming to provide a final report, a working prototype, and a video demonstration of the working drone station (landing, battery swapping, and monitoring/reporting inside an indoor environment).</p>
+      </div>
       <div class="grid">
         <article class="card">
           <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg></div>
