@@ -189,6 +189,12 @@
   .socials svg { width: 18px; height: 18px; }
   .advisor { margin-top: 18px; }
 
+  /* Questionnaire */
+  .survey-cta { display: flex; gap: 18px; align-items: flex-start; max-width: 760px; margin-top: 28px; border-left: 3px solid var(--accent); }
+  .survey-cta .icon { flex: none; margin: 0; }
+  .survey-cta p { margin-bottom: 18px; }
+  @media (max-width: 560px) { .survey-cta { flex-direction: column; } }
+
   /* Resources */
   .resources { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); margin-top: 32px; }
   .res { display: flex; gap: 14px; align-items: center; text-decoration: none; color: var(--text); transition: border-color .15s; }
@@ -217,6 +223,7 @@
         <li><a href="#how">How it works</a></li>
         <li><a href="#results">Results</a></li>
         <li><a href="#team">Team</a></li>
+        <li><a href="#survey">Survey</a></li>
         <li><a href="#resources">Resources</a></li>
       </ul>
     </nav>
@@ -377,6 +384,26 @@
       <h2>Who built it</h2>
       <div class="team" id="teamGrid"></div>
       <div class="card advisor"><strong>Advisor / sponsor:</strong> Ying Wang</div>
+    </div>
+  </section>
+
+  <!-- QUESTIONNAIRE -->
+  <section id="survey">
+    <div class="wrap">
+      <p class="eyebrow">Questionnaire</p>
+      <h2>Tell us what you think</h2>
+      <p class="lead">We're gathering opinions on autonomous drone delivery to guide how we design Node.</p>
+      <div class="card survey-cta">
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+        <div>
+          <h3>“Node” Stations: making autonomous drone delivery better</h3>
+          <p>A short Google Form about how familiar you are with drone delivery, how far you think drones can fly, and what you'd value in longer-range delivery.</p>
+          <a class="btn primary" href="https://docs.google.com/forms/d/e/1FAIpQLSdJCWhLadw2iyHonVt8gh3D0rlWKvJNKewXjcfCh899FzywZw/viewform" target="_blank" rel="noopener">
+            Take the questionnaire
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg>
+          </a>
+        </div>
+      </div>
     </div>
   </section>
 
