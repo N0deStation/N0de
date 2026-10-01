@@ -13,11 +13,10 @@
   document.documentElement.classList.add("js"); // lets CSS hide scroll-reveal content only when JS can show it again
   (function () {
     var t;
-    // Motion: the visitor's saved choice wins; otherwise follow the OS reduced-motion preference.
+    // Motion: on by default for every visitor; it turns off only when they pause it with the nav toggle (remembered).
     var m;
     try { m = localStorage.getItem("ns-motion"); } catch (e) {}
-    if (m === "off" || (m !== "on" && window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches))
-      document.documentElement.classList.add("still");
+    if (m === "off") document.documentElement.classList.add("still");
     try { t = localStorage.getItem("ns-theme"); } catch (e) {}
     if (t === "dark") t = "night";
     if (t === "night") {
@@ -233,8 +232,8 @@
   @media (max-width: 560px) { section { padding-block: 64px; } .hero-section { padding-block: 64px 56px; } }
 
   /* ============================== Motion ==============================
-     Transform/opacity only, no libraries. Everything is switched off under html.still (bottom of this block; set from the
-     nav toggle, else prefers-reduced-motion),
+     Transform/opacity only, no libraries. Everything is switched off under html.still (bottom of this block; set when the
+     visitor pauses animations with the nav toggle; animations are on by default),
      and content never depends on JavaScript: scroll reveals only hide things once the "js" class is present. */
 
   /* Hero layout: copy on the left, animated illustration on the right (stacked on small screens) */
@@ -1262,9 +1261,68 @@
 
   @media print { html.js .reveal { opacity: 1; transform: none; } }
 
-  /* No motion (html.still, set by the head script from the visitor's toggle, else the OS reduced-motion preference):
+  /* ============================== Easter egg: RGB mode ==============================
+     The Konami code, typing "rgb", or tapping the logo five times toggles html[data-rgb] for this visit.
+     Every accent on the site derives from --color-primary / --color-secondary, so cycling their hue recolors the title,
+     buttons, labels, cards, progress line and 3D scene. The hue turns at a fixed perceptual lightness per theme (oklch),
+     so text contrast holds at every hue. With motion off (html.still) the hue shifts once instead of cycling. */
+  @property --hue { syntax: "<number>"; inherits: true; initial-value: 262; }
+  :root[data-rgb] {
+    --color-primary: oklch(50% 0.2 var(--hue)); --color-secondary: oklch(50% 0.2 calc(var(--hue) + 100));
+    --color-primary-content: #fff; --on-accent: #fff;
+    --accent-text: oklch(45% 0.19 var(--hue)); /* a touch darker: small labels sit on tinted panels too (cyan hues need it) */
+    animation: rgb-hue 8s linear infinite;
+  }
+  :root[data-rgb][data-theme="night"] {
+    --color-primary: oklch(77% 0.15 var(--hue)); --color-secondary: oklch(74% 0.15 calc(var(--hue) + 100));
+    --color-primary-content: #050a14; --on-accent: #050a14; --accent-text: var(--color-primary);
+  }
+  @keyframes rgb-hue { from { --hue: 262; } to { --hue: 622; } }
+  html.still[data-rgb] { animation: none; --hue: 330; }
+  :root[data-rgb] .btn-primary { --btn-color: var(--color-primary); --btn-fg: var(--color-primary-content); }
+  :root[data-rgb] .card { border-color: color-mix(in oklab, var(--accent) 45%, var(--line));
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent) 15%, transparent), 0 12px 28px -16px color-mix(in oklab, var(--accent) 75%, transparent); }
+  :root[data-rgb] .nav.navbar::after { background: linear-gradient(90deg, oklch(66% .2 25), oklch(80% .17 85), oklch(72% .2 145), oklch(70% .15 220), oklch(60% .22 290), oklch(66% .22 350)); }
+  .egg-toast {
+    position: fixed; left: 50%; bottom: 24px; z-index: 100; translate: -50% 16px; opacity: 0; pointer-events: none;
+    padding: 10px 18px; border-radius: 999px; font: 600 .875rem/1.3 var(--font); color: var(--text);
+    border: 2px solid transparent; box-shadow: 0 12px 30px -12px rgb(0 0 0 / .35);
+    background: linear-gradient(var(--bg), var(--bg)) padding-box,
+      conic-gradient(oklch(66% .2 25), oklch(80% .17 85), oklch(72% .2 145), oklch(70% .15 220), oklch(60% .22 290), oklch(66% .22 350), oklch(66% .2 25)) border-box;
+    transition: opacity .25s ease, translate .25s ease;
+  }
+  .egg-toast.show { opacity: 1; translate: -50% 0; }
+  /* RGB mode bonus: a cat dancing on the drone. A flat cutout facing the drone's front, leaning back toward the camera,
+     riding along (and banking) with the drone. It freezes in place when animations are paused. */
+  .party-cat { display: none; position: absolute; left: 0; top: 0; width: 44px; height: 52px; margin: -52px 0 0 -22px;
+    translate: 0 -46px 8px; rotate: x 12deg; transform-origin: 50% 100%; pointer-events: none; }
+  :root[data-rgb] .party-cat { display: block; }
+  .party-cat svg { display: block; width: 100%; height: 100%; overflow: visible; transform-origin: 50% 100%;
+    animation: cat-pop .45s cubic-bezier(.3, 1.6, .5, 1) both, cat-bounce .5s ease-in-out .45s infinite; }
+  .party-cat g { transform-box: fill-box; }
+  .party-cat .cat-body { transform-origin: 50% 100%; animation: cat-sway 1s ease-in-out infinite alternate; }
+  .party-cat .cat-head { transform-origin: 50% 85%; animation: cat-tilt 1s ease-in-out infinite alternate; }
+  .party-cat .paw-l { transform-origin: 90% 8%; animation: paw-l 1s ease-in-out infinite; }
+  .party-cat .paw-r { transform-origin: 10% 8%; animation: paw-r 1s ease-in-out infinite; }
+  .party-cat .tail { transform-origin: 0% 100%; animation: cat-tail .5s ease-in-out infinite alternate; }
+  .party-cat .foot-l { animation: cat-step .5s ease-in-out infinite; }
+  .party-cat .foot-r { animation: cat-step .5s ease-in-out .25s infinite; }
+  .party-cat .note { position: absolute; font: 700 15px/1 var(--font); color: var(--accent); opacity: 0; animation: note-float 1.6s ease-out infinite; }
+  .party-cat .n1 { left: -10px; top: 6px; }
+  .party-cat .n2 { right: -12px; top: 0; color: var(--accent-2); animation-delay: .8s; }
+  @keyframes cat-pop { from { scale: 0; } }
+  @keyframes cat-bounce { 50% { translate: 0 -3px; } }
+  @keyframes cat-sway { from { rotate: -9deg; } to { rotate: 9deg; } }
+  @keyframes cat-tilt { from { rotate: 12deg; } to { rotate: -12deg; } }
+  @keyframes paw-l { 0%, 100% { rotate: 10deg; } 50% { rotate: 150deg; } }
+  @keyframes paw-r { 0%, 100% { rotate: -150deg; } 50% { rotate: -10deg; } }
+  @keyframes cat-tail { from { rotate: -18deg; } to { rotate: 24deg; } }
+  @keyframes cat-step { 50% { translate: 0 -2px; } }
+  @keyframes note-float { 0% { opacity: 0; translate: 0 4px; } 20% { opacity: 1; } 100% { opacity: 0; translate: 0 -20px; } }
+
+  /* No motion (html.still, set by the head script when the visitor has paused animations with the nav toggle):
      no animation or transitions anywhere; the illustration shows its static landed frame.
-     Without JS, the media query below still protects reduced-motion visitors. */
+     Without JS there is no toggle, so the media query below lets reduced-motion visitors still opt out via their OS. */
   html.still { scroll-behavior: auto; }
   html.still *, html.still *::before, html.still *::after { animation: none !important; transition: none !important; }
   html.still.js .reveal { opacity: 1; transform: none; }
@@ -1462,6 +1520,35 @@
                 <div class="b3" style="--w:4px;--h:23px;--d:4px;--x:-23px;--y:-15px;--z:-18px;--c:var(--frame);--rz:15deg"><i></i><i></i><i></i><i></i><i></i><i></i></div>
                 <div class="b3 round" style="--w:4px;--h:4px;--d:66px;--x:26px;--y:-2px;--z:0px;--c:var(--frame)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
                 <div class="b3 round" style="--w:4px;--h:4px;--d:66px;--x:-26px;--y:-2px;--z:0px;--c:var(--frame)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                <!-- easter egg (RGB mode): a cat dancing on the drone's canopy -->
+                <div class="party-cat" aria-hidden="true">
+                  <svg viewBox="0 0 44 52">
+                    <g class="cat-body">
+                      <g class="tail"><path d="M30 42c8-1 12-8 9-17" fill="none" stroke="#3b2a20" stroke-width="6" stroke-linecap="round"/><path d="M30 42c8-1 12-8 9-17" fill="none" stroke="#f4a259" stroke-width="3.5" stroke-linecap="round"/></g>
+                      <ellipse cx="22" cy="38" rx="10" ry="11" fill="#f4a259" stroke="#3b2a20" stroke-width="1.5"/>
+                      <ellipse cx="22" cy="40.5" rx="6" ry="7" fill="#ffe7c7"/>
+                      <g class="paw-l"><path d="M14 31l-6 9" stroke="#3b2a20" stroke-width="6" stroke-linecap="round"/><path d="M14 31l-6 9" stroke="#f4a259" stroke-width="3.5" stroke-linecap="round"/></g>
+                      <g class="paw-r"><path d="M30 31l6 9" stroke="#3b2a20" stroke-width="6" stroke-linecap="round"/><path d="M30 31l6 9" stroke="#f4a259" stroke-width="3.5" stroke-linecap="round"/></g>
+                      <g class="cat-head">
+                        <path d="M12 13l1-11 8 7z M32 13l-1-11-8 7z" fill="#f4a259" stroke="#3b2a20" stroke-width="1.5" stroke-linejoin="round"/>
+                        <path d="M14 10l.6-5 3.4 3z M30 10l-.6-5-3.4 3z" fill="#f7a8b8"/>
+                        <circle cx="22" cy="18" r="11" fill="#f4a259" stroke="#3b2a20" stroke-width="1.5"/>
+                        <path d="M19 9.5q3 2 6 0 M18 12.5q4 1.5 8 0" fill="none" stroke="#d9822b" stroke-width="1.4" stroke-linecap="round"/>
+                        <path d="M15.5 18.5q2.5-3 5 0 M23.5 18.5q2.5-3 5 0" fill="none" stroke="#3b2a20" stroke-width="1.6" stroke-linecap="round"/>
+                        <circle cx="15" cy="22" r="2" fill="#f7a8b8" opacity=".7"/><circle cx="29" cy="22" r="2" fill="#f7a8b8" opacity=".7"/>
+                        <path d="M20.6 20.8h2.8l-1.4 1.6z" fill="#e8768c"/>
+                        <path d="M19.5 23.5q1.25 1.6 2.5 0q1.25 1.6 2.5 0" fill="none" stroke="#3b2a20" stroke-width="1.2" stroke-linecap="round"/>
+                        <path d="M10 20.5l5 .8 M10 23.5l5-.5 M34 20.5l-5 .8 M34 23.5l-5-.5" stroke="#3b2a20" stroke-width=".9" stroke-linecap="round"/>
+                        <path d="M16.5 8.5L22 -7l5.5 15.5z" style="fill: var(--accent)" stroke="#3b2a20" stroke-width="1.3" stroke-linejoin="round"/>
+                        <path d="M18.6 2.5l6.8 0 M20.4 -2.5l3.2 0" style="stroke: var(--accent-2)" stroke-width="2" stroke-linecap="round"/>
+                        <circle cx="22" cy="-7.5" r="2.4" style="fill: var(--accent-2)" stroke="#3b2a20" stroke-width="1"/>
+                      </g>
+                    </g>
+                    <g class="foot-l"><ellipse cx="17" cy="49.5" rx="4.2" ry="2.6" fill="#f4a259" stroke="#3b2a20" stroke-width="1.4"/></g>
+                    <g class="foot-r"><ellipse cx="27" cy="49.5" rx="4.2" ry="2.6" fill="#f4a259" stroke="#3b2a20" stroke-width="1.4"/></g>
+                  </svg>
+                  <span class="note n1">&#9834;</span><span class="note n2">&#9835;</span>
+                </div>
               </div>
             </div>
           </div>
@@ -1649,6 +1736,9 @@
   </div>
 </footer>
 
+<!-- psst: there's an easter egg. Try the Konami code (up up down down left right left right B A), or just type "rgb". -->
+<div class="egg-toast" id="eggToast" role="status" aria-live="polite"></div>
+
 <script>
 /* ==========================================================================
    EDIT YOUR CONTENT HERE
@@ -1734,7 +1824,7 @@ const RESOURCES = [
   });
   paintIcon();
 
-  // Motion toggle: starts from the OS reduced-motion preference; the visitor's choice is remembered.
+  // Motion toggle: animations are on by default; pausing (or resuming) is remembered.
   var isStill = function () { return root.classList.contains("still"); };
   var paintMotion = function () {
     $("motionIcon").innerHTML = isStill() ? ICONS.play : ICONS.pause;
@@ -1746,12 +1836,6 @@ const RESOURCES = [
     if (!isStill()) root.classList.add("resumed");
     try { localStorage.setItem("ns-motion", isStill() ? "off" : "on"); } catch (e) {}
     paintMotion();
-  });
-  // Follow live OS changes until the visitor picks for themselves
-  var motionMQ = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)");
-  if (motionMQ && motionMQ.addEventListener) motionMQ.addEventListener("change", function (e) {
-    var saved; try { saved = localStorage.getItem("ns-motion"); } catch (err) {}
-    if (!saved) { root.classList.toggle("still", e.matches); paintMotion(); }
   });
   paintMotion();
 
@@ -1837,7 +1921,7 @@ const RESOURCES = [
   }
 
   /* ============================== Motion ============================== */
-  var reduceMotion = isStill(); // html.still: the visitor's toggle, else the OS reduced-motion preference
+  var reduceMotion = isStill(); // html.still: the visitor paused animations with the nav toggle
 
   // Stat numbers count up once, when their panel scrolls into view. The final text is always restored exactly.
   var countUp = function (scope) {
@@ -1892,6 +1976,43 @@ const RESOURCES = [
       heroVisual.classList.toggle("paused", !entries[0].isIntersecting);
     }).observe(heroVisual);
   }
+
+  /* ============================== Easter egg: RGB mode ============================== */
+  // The Konami code, typing "rgb", or tapping the logo five times quickly toggles a hue-cycling theme for this visit.
+  var toast = $("eggToast"), toastTimer;
+  var showToast = function (msg) {
+    toast.textContent = msg; toast.classList.add("show");
+    clearTimeout(toastTimer); toastTimer = setTimeout(function () { toast.classList.remove("show"); }, 2800);
+  };
+  var toggleRgb = function () {
+    var on = !root.hasAttribute("data-rgb");
+    if (on) root.setAttribute("data-rgb", ""); else root.removeAttribute("data-rgb");
+    showToast(on ? "RGB mode on. Do it again to turn it off." : "RGB mode off.");
+  };
+  var CODES = [
+    ["arrowup", "arrowup", "arrowdown", "arrowdown", "arrowleft", "arrowright", "arrowleft", "arrowright", "b", "a"],
+    ["r", "g", "b"]
+  ];
+  var recent = [];
+  document.addEventListener("keydown", function (e) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    var t = e.target;
+    if (t && (t.isContentEditable || /^(input|textarea|select)$/i.test(t.tagName))) return;
+    recent.push((e.key || "").toLowerCase());
+    if (recent.length > 10) recent.shift();
+    CODES.forEach(function (code) {
+      var tail = recent.slice(-code.length);
+      if (tail.length === code.length && tail.every(function (k, i) { return k === code[i]; })) { recent = []; toggleRgb(); }
+    });
+  });
+  var taps = [];
+  document.querySelector(".brand").addEventListener("click", function () {
+    var now = Date.now();
+    taps = taps.filter(function (t) { return now - t < 1500; });
+    taps.push(now);
+    if (taps.length >= 5) { taps = []; toggleRgb(); }
+  });
+  try { console.log("%cNodeStation%c  psst: try the Konami code (↑ ↑ ↓ ↓ ← → ← → B A), or just type \"rgb\".", "font: 700 14px Outfit, sans-serif; color: #0069ff", "color: inherit"); } catch (e) {}
 })();
 </script>
 </body>
