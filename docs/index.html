@@ -1,222 +1,866 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="winter">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>NodeStation | CPE 423 Senior Design</title>
 <meta name="description" content="NodeStation: an autonomous ground station that lands drones, swaps their batteries mechanically, and recharges the used packs.">
-<meta name="color-scheme" content="dark light">
+<meta name="color-scheme" content="light">
 <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
 <script>
-  // Apply saved theme before paint to avoid a flash.
+  // Themes (daisyUI): "winter" is the light default for every visitor; "night" is the dark option.
+  // Apply a saved choice before first paint. Older saved values "light"/"dark" are migrated.
+  document.documentElement.classList.add("js"); // lets CSS hide scroll-reveal content only when JS can show it again
   (function () {
-    try {
-      var t = localStorage.getItem("ns-theme");
-      if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
-    } catch (e) {}
+    var t;
+    try { t = localStorage.getItem("ns-theme"); } catch (e) {}
+    if (t === "dark") t = "night";
+    if (t === "night") {
+      document.documentElement.setAttribute("data-theme", "night");
+      document.querySelector('meta[name="color-scheme"]').setAttribute("content", "dark");
+    }
   })();
 </script>
+<!--
+  daisyUI 5 (https://daisyui.com), loaded as individual component stylesheets in one request. No Tailwind, no build step.
+  To use another component, append ",npm/daisyui@5.7.47/components/<name>.css" to this URL (list: daisyui.com/components).
+  Note: daisyUI rules live in a CSS layer, so any plain rule in the <style> below that targets the same class wins over it.
+-->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/combine/npm/daisyui@5.7.47/theme/night.css,npm/daisyui@5.7.47/theme/winter.css,npm/daisyui@5.7.47/components/button.css,npm/daisyui@5.7.47/components/card.css,npm/daisyui@5.7.47/components/navbar.css,npm/daisyui@5.7.47/components/menu.css,npm/daisyui@5.7.47/components/badge.css,npm/daisyui@5.7.47/components/stat.css,npm/daisyui@5.7.47/components/avatar.css">
+<!-- Outfit: the title font daisyui.com uses. One variable font file (weights 300 to 800); text shows in the system font until it loads. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300..800&display=swap">
 <style>
+  /* Site tokens, derived from the active daisyUI theme. Fallbacks are the winter (default) colors, used only if the CDN is unreachable. */
   :root {
-    --bg: #0b0f14;
-    --surface: #121821;
-    --surface-2: #19212c;
-    --border: #2a3441;
-    --text: #e6edf3;
-    --muted: #8b98a5;
-    --accent: #22d3ee;
-    --accent-2: #3b82f6;
-    --on-accent: #041016;
-    --todo: #f5a524;
-    --todo-bg: rgba(245, 165, 36, 0.08);
-    --glow: rgba(34, 211, 238, 0.16);
-    --nav-bg: rgba(11, 15, 20, 0.82);
-    --radius: 14px;
+    --bg: var(--color-base-100, #ffffff);
+    --bg-alt: var(--color-base-200, #f2f7fe);
+    --text: var(--color-base-content, #394e6a);
+    --surface-2: color-mix(in oklab, var(--text) 10%, var(--bg));
+    --line: color-mix(in oklab, var(--text) 14%, var(--bg));
+    --muted: color-mix(in oklab, var(--text) 82%, var(--bg));
+    --accent: var(--color-primary, #0069ff);
+    --accent-2: var(--color-secondary, #463aa2);
+    --on-accent: var(--color-primary-content, #010d15);
+    --todo: var(--color-warning, oklch(52% 0.13 65));
+    --glow: color-mix(in oklab, var(--accent) 18%, transparent);
+    --nav-bg: color-mix(in oklab, var(--bg) 85%, transparent);
+    /* daisyui.com style: cards contrast with the panel they sit on (base-200 on base-100 sections, base-100 on base-200 sections) */
+    --card-bg: var(--bg-alt);
+    --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / .1), 0 1px 2px -1px rgb(0 0 0 / .1); /* Tailwind shadow-sm */
+    --accent-text: var(--accent); /* accent used as small text (labels, links) */
+    --radius: var(--radius-box, 1rem);
+    --radius-sm: var(--radius-field, .5rem);
     --maxw: 1100px;
-    --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    --mono: ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-    color-scheme: dark;
+    /* Typography copied from daisyui.com: Outfit for titles, the system UI stack for body text, system mono for code-like labels */
+    --font: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+    --font-title: Outfit, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   }
-  @media (prefers-color-scheme: light) {
-    :root:not([data-theme="dark"]) {
-      --bg: #f7f9fb; --surface: #ffffff; --surface-2: #eef2f6; --border: #d6dde5;
-      --text: #0f172a; --muted: #516071; --accent: #0e7490; --accent-2: #2563eb;
-      --on-accent: #ffffff; --todo: #b45309; --todo-bg: rgba(180, 83, 9, 0.07);
-      --glow: rgba(8, 145, 178, 0.12); --nav-bg: rgba(247, 249, 251, 0.85); color-scheme: light;
-    }
-  }
-  :root[data-theme="light"] {
-    --bg: #f7f9fb; --surface: #ffffff; --surface-2: #eef2f6; --border: #d6dde5;
-    --text: #0f172a; --muted: #516071; --accent: #0e7490; --accent-2: #2563eb;
-    --on-accent: #ffffff; --todo: #b45309; --todo-bg: rgba(180, 83, 9, 0.07);
-    --glow: rgba(8, 145, 178, 0.12); --nav-bg: rgba(247, 249, 251, 0.85); color-scheme: light;
-  }
+
+  /* winter: white text on accent-colored surfaces (the theme's own pale-blue content color measures 3.6:1) */
+  :root[data-theme="winter"] { --on-accent: #fff; --accent-text: oklch(48% 0.22 262); } /* deeper blue for small accent text on white and base-200 */
 
   *, *::before, *::after { box-sizing: border-box; }
   html { scroll-behavior: smooth; scroll-padding-top: 72px; }
   body {
     margin: 0; background: var(--bg); color: var(--text);
-    font: 16px/1.6 var(--font); -webkit-font-smoothing: antialiased;
+    font: 16px/1.5 var(--font); -webkit-font-smoothing: antialiased;
   }
   img { max-width: 100%; height: auto; display: block; }
-  a { color: var(--accent); text-underline-offset: 3px; }
-  :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
-  h1, h2, h3 { line-height: 1.2; margin: 0 0 .5em; letter-spacing: -0.01em; }
-  h2 { font-size: clamp(1.6rem, 3.5vw, 2.2rem); }
-  h3 { font-size: 1.1rem; }
+  :where(a:not(.btn):not(.card)) { color: var(--accent-text); text-underline-offset: 3px; } /* zero specificity, so component rules win */
+  a.btn, .menu a { text-decoration: none; } /* daisyUI assumes Tailwind's reset, which we don't load */
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+  /* Type scale, following daisyui.com: Outfit titles with tight leading, Tailwind sizes (0.75 / 0.875 / 1 / 1.125rem) for the rest */
+  h1, h2, h3, h4 { font-family: var(--font-title); font-weight: 600; line-height: 1.2; margin: 0 0 .5em; color: var(--text); }
+  h2 { font-size: clamp(2.25rem, 5vw, 3.75rem); font-weight: 700; line-height: 1.05; letter-spacing: -0.015em; margin-bottom: .45em; }
+  h3 { font-size: 1.125rem; }
   p { margin: 0 0 1em; }
 
-  .wrap { max-width: var(--maxw); margin: 0 auto; padding-inline: 20px; }
-  .skip { position: absolute; left: -999px; top: 8px; background: var(--accent); color: var(--on-accent); padding: 8px 12px; border-radius: 8px; z-index: 100; }
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding-inline: 20px; width: 100%; }
+  .skip { position: absolute; left: -999px; top: 8px; background: var(--accent); color: var(--on-accent); padding: 8px 12px; border-radius: var(--radius-sm); z-index: 100; }
   .skip:focus { left: 8px; }
 
-  /* TODO marker: deliberately loud so nothing ships unfilled */
-  .todo {
-    display: inline-block; font: 600 .78rem/1.4 var(--mono); color: var(--todo);
-    background: var(--todo-bg); border: 1px dashed var(--todo); border-radius: 6px;
-    padding: 2px 8px; vertical-align: middle;
+  /* TODO marker (daisyUI warning badge), loud on purpose so nothing ships unfilled */
+  .todo.badge {
+    font: 600 .75rem/1.4 var(--mono); height: auto; min-height: var(--size, 1.5rem);
+    white-space: normal; text-align: left; padding-block: 2px; vertical-align: middle;
+    border-style: dashed; border-color: var(--todo); border-radius: var(--radius-sm);
   }
-  .todo-block { display: table; margin-top: .6em; }
+  [data-theme="winter"] .todo.badge { --todo: oklch(52% 0.13 65); color: var(--todo); } /* winter's warning is too pale to read on white */
+  .todo-block { display: flex; width: fit-content; margin-top: .6em; }
 
-  /* Nav */
-  .nav {
-    position: sticky; top: 0; z-index: 50; background: var(--nav-bg);
+  /* Nav (daisyUI navbar + horizontal menu) */
+  .nav.navbar {
+    position: sticky; top: 0; z-index: 50; padding: 0; min-height: 0; background: var(--nav-bg);
     backdrop-filter: saturate(1.4) blur(10px); -webkit-backdrop-filter: saturate(1.4) blur(10px);
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--line);
   }
-  .nav .wrap { display: flex; align-items: center; gap: 16px; height: 60px; }
-  .brand { display: flex; align-items: center; gap: 10px; color: var(--text); text-decoration: none; font-weight: 700; }
+  .nav .wrap { display: flex; align-items: center; gap: 12px; height: 60px; }
+  .brand { display: flex; align-items: center; gap: 10px; color: var(--text); text-decoration: none; font: 600 1.15rem/1 var(--font-title); }
   .brand img { width: 28px; height: 28px; }
   .nav nav { margin-left: auto; min-width: 0; }
-  .nav ul { display: flex; gap: 4px; list-style: none; margin: 0; padding: 0; }
-  .nav ul a { display: block; padding: 6px 10px; border-radius: 8px; color: var(--muted); text-decoration: none; font-size: .92rem; white-space: nowrap; }
-  .nav ul a:hover, .nav ul a.active { color: var(--text); background: var(--surface-2); }
-  .theme-btn {
-    flex: none; width: 38px; height: 38px; border-radius: 10px; border: 1px solid var(--border);
-    background: var(--surface); color: var(--text); cursor: pointer; display: grid; place-items: center;
-  }
+  .nav .menu { flex-wrap: nowrap; padding: 0; gap: 2px; --menu-active-bg: var(--surface-2); --menu-active-fg: var(--text); }
+  .nav .menu a { color: var(--muted); white-space: nowrap; font-size: .875rem; }
+  .nav .menu a[aria-current="true"] { color: var(--text); }
+  .theme-btn { flex: none; }
   .theme-btn svg { width: 18px; height: 18px; }
   @media (max-width: 860px) { .nav nav { display: none; } .theme-btn { margin-left: auto; } }
 
-  /* Sections */
-  section { padding-block: 80px; border-bottom: 1px solid var(--border); }
-  .eyebrow { font: 600 .8rem/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
-  .lead { color: var(--muted); font-size: 1.1rem; max-width: 68ch; }
+  /* Sections alternate base-100 / base-200 panels, like daisyui.com; cards flip to contrast with their panel */
+  section { padding-block: 88px; }
+  main > section:nth-of-type(even) {
+    background: var(--bg-alt); --card-bg: var(--bg);
+    --line: color-mix(in oklab, var(--text) 14%, var(--bg-alt));
+    --muted: color-mix(in oklab, var(--text) 82%, var(--bg-alt));
+  }
+  .eyebrow { font: 600 .75rem/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--accent-text); margin-bottom: 14px; }
+  .lead { color: var(--muted); font-size: 1.125rem; line-height: 1.65; max-width: 68ch; }
+  /* The first paragraph under a section title is a daisyui.com-style subtitle: large, light Outfit */
+  h2 + .lead { font: 300 clamp(1.25rem, 2.2vw, 1.5rem)/1.45 var(--font-title); max-width: 56ch; margin-bottom: 1.1em; }
+  .subhead { margin-top: 48px; font-size: clamp(1.4rem, 2.6vw, 1.75rem); font-weight: 600; }
   .grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); margin-top: 32px; }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; }
+
+  /* Cards (daisyUI card). Surface, border and shadow come from here, since there are no Tailwind utilities */
+  .card { background: var(--card-bg); border: 1px solid var(--line); box-shadow: var(--shadow-sm); --card-fs: .875rem; color: var(--text); }
+  .card .card-title { margin: 0; font-family: var(--font-title); font-weight: 600; font-size: 1.125rem; }
   .card p { color: var(--muted); margin: 0; }
-  .icon { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; margin-bottom: 14px;
-    background: linear-gradient(135deg, var(--glow), transparent); border: 1px solid var(--border); color: var(--accent); }
+  a.card { text-decoration: none; }
+  .icon { width: 40px; height: 40px; border-radius: var(--radius-sm); display: grid; place-items: center; flex: none;
+    background: linear-gradient(135deg, var(--glow), transparent); border: 1px solid var(--line); color: var(--accent); }
   .icon svg { width: 22px; height: 22px; }
 
   /* Hero */
-  .hero { position: relative; overflow: hidden; padding-block: 96px 88px; }
-  .hero::before {
+  .hero-section { position: relative; overflow: hidden; padding-block: 96px 88px; }
+  .hero-section::before {
     content: ""; position: absolute; left: -10%; right: -10%; top: -40%; height: 120%; pointer-events: none;
     background: radial-gradient(closest-side, var(--glow), transparent 70%);
   }
-  .hero::after {
+  .hero-section::after {
     content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .35;
-    background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
     background-size: 44px 44px;
     mask-image: radial-gradient(ellipse at 50% 0%, #000 20%, transparent 70%);
     -webkit-mask-image: radial-gradient(ellipse at 50% 0%, #000 20%, transparent 70%);
   }
-  .hero .wrap { position: relative; z-index: 1; }
-  .hero h1 { font-size: clamp(2.6rem, 8vw, 4.6rem); letter-spacing: -0.03em; margin-bottom: 16px; }
+  .hero-section .wrap { position: relative; z-index: 1; }
+  .hero-section h1 { font-size: clamp(2.5rem, 12vw, 5.5rem); font-weight: 800; line-height: 1; letter-spacing: -0.03em; margin-bottom: 20px; }
   .grad { background: linear-gradient(90deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-  .tagline { font-size: clamp(1.1rem, 2.4vw, 1.35rem); color: var(--text); max-width: 60ch; }
-  .meta { display: flex; flex-wrap: wrap; gap: 8px 20px; color: var(--muted); font-size: .95rem; margin: 20px 0 8px; }
-  .meta strong { color: var(--text); font-weight: 600; }
-  .team-line { color: var(--muted); font-size: .95rem; margin-bottom: 28px; }
+  /* daisyui.com-style subtitle: large, light Outfit, slightly muted */
+  .tagline { font: 300 clamp(1.25rem, 2.6vw, 1.7rem)/1.4 var(--font-title); color: var(--muted); max-width: 44ch; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 22px 0 12px; }
+  .meta .badge { height: auto; padding-block: 4px; color: var(--muted); border-color: var(--line); }
+  .meta .badge strong { color: var(--text); font-weight: 600; }
+  .team-line { color: var(--muted); font-size: .875rem; margin-bottom: 28px; }
   .btns { display: flex; flex-wrap: wrap; gap: 12px; }
-  .btn {
-    display: inline-flex; align-items: center; gap: 8px; padding: 11px 18px; border-radius: 10px;
-    font-weight: 600; text-decoration: none; border: 1px solid var(--border); color: var(--text); background: var(--surface);
-    transition: border-color .15s, transform .15s;
-  }
-  .btn:hover { border-color: var(--accent); transform: translateY(-1px); }
-  .btn.primary { background: linear-gradient(90deg, var(--accent), var(--accent-2)); color: var(--on-accent); border-color: transparent; }
   .btn svg { width: 18px; height: 18px; }
-  .btn[aria-disabled="true"] { opacity: .7; pointer-events: none; }
+  /* winter's primary button pairs pale text with mid blue (3.6:1); deepen it to pass WCAG AA */
+  [data-theme="winter"] .btn-primary { --btn-color: oklch(48% 0.22 262); --btn-fg: #fff; }
 
   /* Demo */
   .video {
     position: relative; aspect-ratio: 16 / 9; max-width: 100%; margin-top: 32px; border-radius: var(--radius); overflow: hidden;
-    background: var(--surface); border: 1px solid var(--border); display: grid; place-items: center; text-align: center; padding: 20px;
+    background: var(--card-bg); border: 1px solid var(--line); box-shadow: var(--shadow-sm);
+    display: grid; place-items: center; text-align: center; padding: 20px;
   }
   .video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
-  .video .play { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; margin: 0 auto 12px; border: 2px solid var(--border); color: var(--muted); }
+  .video .play { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; margin: 0 auto 12px; border: 2px solid var(--line); color: var(--muted); }
   .video .play svg { width: 26px; height: 26px; }
   .gallery { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); margin-top: 18px; }
-  .gallery figure { margin: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .gallery figure { margin: 0; background: var(--card-bg); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-sm); overflow: hidden; }
   .gallery img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
-  .gallery figcaption { padding: 10px 12px; color: var(--muted); font-size: .9rem; }
+  .gallery figcaption { padding: 10px 12px; color: var(--muted); font-size: .875rem; }
   .shot-ph { aspect-ratio: 4 / 3; display: grid; place-items: center; padding: 12px; }
 
   /* How it works */
   .diagram { margin: 32px 0 0; }
-  .diagram img { width: 100%; border-radius: var(--radius); border: 1px solid var(--border); }
-  .diagram figcaption { color: var(--muted); font-size: .9rem; margin-top: 10px; }
-  .subhead { margin-top: 44px; font-size: 1.3rem; }
+  .diagram img { width: 100%; border-radius: var(--radius); border: 1px solid var(--line); }
+  .diagram figcaption { color: var(--muted); font-size: .875rem; margin-top: 10px; }
   .stack { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); margin-top: 18px; }
-  .stack .card h4 { font: 600 .8rem/1.2 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
+  .stack h4 { font: 600 .75rem/1.2 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 0; }
 
-  /* Results */
-  .stats { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); margin-top: 32px; }
-  .stat .value { font: 700 clamp(2.4rem, 5vw, 3.2rem)/1.1 var(--font); margin-bottom: 6px; letter-spacing: -0.02em;
+  /* Stats (daisyUI stats): full width, wrap text, stack on phones */
+  .stats { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; width: 100%; margin-top: 24px;
+    background: var(--card-bg); border: 1px solid var(--line); box-shadow: var(--shadow-sm); }
+  .stat-title, .stat-desc { white-space: normal; font-size: .875rem; color: var(--muted); }
+  .stat-value { white-space: normal; font-family: var(--font-title); font-weight: 700; font-variant-numeric: tabular-nums;
+    font-size: clamp(2.25rem, 5vw, 3.5rem); line-height: 1.05; letter-spacing: -0.02em; margin-block: 6px;
     background: linear-gradient(90deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-  .abstract { max-width: 78ch; margin-top: 18px; border-left: 3px solid var(--accent); }
-  .abstract p { color: var(--text); font-size: 1.05rem; }
-  .abstract p + p { margin-top: 1em; }
-  .pull { font-size: 1.35rem; font-weight: 700; color: var(--text); margin-top: 1.2em; }
-  .stat .label { color: var(--muted); font-size: .95rem; }
-  .checklist { list-style: none; padding: 0; margin: 28px 0 0; display: grid; gap: 10px; }
-  .checklist li { display: flex; gap: 12px; align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; color: var(--muted); }
-
-  /* Team */
-  .team { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); margin-top: 32px; }
-  .member { text-align: center; }
-  .avatar {
-    width: 112px; height: 112px; border-radius: 50%; margin: 4px auto 16px; object-fit: cover;
-    display: grid; place-items: center; font: 700 2rem/1 var(--font); color: var(--on-accent);
-    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  @media (max-width: 640px) {
+    .stats { grid-auto-flow: row; }
+    .stats .stat:not(:last-child) { border-inline-end: none; border-block-end: 1px dashed var(--line); }
   }
-  .member .role { color: var(--muted); margin-bottom: 12px; }
-  .socials { display: flex; justify-content: center; gap: 10px; }
-  .socials a { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 9px; border: 1px solid var(--border); color: var(--muted); }
-  .socials a:hover { color: var(--accent); border-color: var(--accent); }
-  .socials svg { width: 18px; height: 18px; }
+  .pull { font: 600 clamp(1.5rem, 3vw, 2rem)/1.2 var(--font-title); color: var(--text); margin-top: 1.2em; }
+  .abstract { max-width: 78ch; margin-top: 18px; border-left: 3px solid var(--accent); }
+  .abstract p { color: var(--text); font-size: 1rem; line-height: 1.7; }
+  .abstract p + p { margin-top: .6em; }
+  .checklist { list-style: none; padding: 0; margin: 28px 0 0; display: grid; gap: 10px; }
+  .checklist li { display: flex; gap: 12px; align-items: center; background: var(--card-bg); border: 1px solid var(--line);
+    border-radius: var(--radius); box-shadow: var(--shadow-sm); padding: 14px 16px; color: var(--muted); }
+
+  /* Team (daisyUI card + avatar) */
+  .team { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); margin-top: 32px; }
+  .member .card-body { align-items: center; text-align: center; }
+  .member .avatar > div { width: 96px; height: 96px; border-radius: 50%; overflow: hidden; margin-bottom: 8px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: var(--on-accent); font: 600 1.9rem/1 var(--font-title); }
+  .member .avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .member .role { margin: 0; }
+  .socials { display: flex; justify-content: center; gap: 6px; margin-top: 6px; }
+  .socials .btn { color: var(--muted); }
   .advisor { margin-top: 18px; }
 
   /* Questionnaire */
-  .survey-cta { display: flex; gap: 18px; align-items: flex-start; max-width: 760px; margin-top: 28px; border-left: 3px solid var(--accent); }
-  .survey-cta .icon { flex: none; margin: 0; }
-  .survey-cta p { margin-bottom: 18px; }
-  @media (max-width: 560px) { .survey-cta { flex-direction: column; } }
+  .survey-cta { max-width: 760px; margin-top: 28px; border-left: 3px solid var(--accent); }
+  .survey-cta .card-body { flex-direction: row; gap: 18px; align-items: flex-start; }
+  .survey-cta p { margin-bottom: 14px; }
+  @media (max-width: 560px) { .survey-cta .card-body { flex-direction: column; } }
 
   /* Resources */
   .resources { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); margin-top: 32px; }
-  .res { display: flex; gap: 14px; align-items: center; text-decoration: none; color: var(--text); transition: border-color .15s; }
-  a.res:hover { border-color: var(--accent); }
-  .res .icon { margin: 0; flex: none; }
+  .res .card-body { flex-direction: row; align-items: center; gap: 14px; }
   .res small { display: block; color: var(--muted); overflow-wrap: anywhere; }
 
-  footer { padding-block: 36px; color: var(--muted); font-size: .9rem; }
+  footer { padding-block: 36px; background: var(--bg-alt); color: color-mix(in oklab, var(--text) 82%, var(--bg-alt)); font-size: .875rem; }
   footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; }
 
-  @media (max-width: 560px) { section { padding-block: 60px; } .hero { padding-block: 64px 56px; } }
-  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .btn, .res { transition: none; } .btn:hover { transform: none; } }
+  @media (max-width: 560px) { section { padding-block: 64px; } .hero-section { padding-block: 64px 56px; } }
+
+  /* ============================== Motion ==============================
+     Transform/opacity only, no libraries. Everything is switched off under prefers-reduced-motion (bottom of this block),
+     and content never depends on JavaScript: scroll reveals only hide things once the "js" class is present. */
+
+  /* Hero layout: copy on the left, animated illustration on the right (stacked on small screens) */
+  .hero-grid { display: grid; gap: 40px; align-items: center; }
+  .hero-visual { width: 100%; max-width: 440px; justify-self: center; }
+  @media (min-width: 960px) {
+    .hero-grid { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); }
+    .hero-section h1 { font-size: clamp(3rem, 7vw, 5.5rem); }
+  }
+
+  /* Hero entrance: staggered rise on load */
+  @keyframes rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+  .hero-copy > * { animation: rise .8s cubic-bezier(.2, .7, .2, 1) both; }
+  .hero-copy > :nth-child(2) { animation-delay: .08s; }
+  .hero-copy > :nth-child(3) { animation-delay: .16s; }
+  .hero-copy > :nth-child(4) { animation-delay: .24s; }
+  .hero-copy > :nth-child(5) { animation-delay: .30s; }
+  .hero-copy > :nth-child(6) { animation-delay: .36s; }
+  .hero-visual { animation: rise 1s .3s cubic-bezier(.2, .7, .2, 1) both; }
+
+  /* Slow shimmer across the gradient title, and a drifting glow behind the hero */
+  .hero-section h1 .grad {
+    background-image: linear-gradient(90deg, var(--accent), var(--accent-2), var(--accent));
+    background-size: 200% auto; animation: shimmer 10s linear infinite;
+  }
+  @keyframes shimmer { to { background-position: -200% center; } }
+  .hero-section::before { animation: drift 16s ease-in-out infinite alternate; }
+  @keyframes drift { from { transform: translate3d(-4%, 0, 0) scale(1); } to { transform: translate3d(6%, 5%, 0) scale(1.12); } }
+
+  /* 3D hero illustration (CSS 3D transforms, generated from one schedule; see the HTML comment in .hero-visual).
+     Base styles are the static frame used with reduced motion: the drone on pad 1 with its charged pack installed,
+     the gantry parked over the rack, and the received pack charging in slot 2.
+     Boxes are only moved with translate/rotate/visibility, never opacity, which would flatten their 3D faces. */
+  @property --c { syntax: "<color>"; inherits: true; initial-value: #888; } /* lets pack colors animate as they charge */
+  .scene3d {
+    --k: 1; --st: color-mix(in oklab, var(--text) 16%, var(--bg)); --frame: color-mix(in oklab, var(--text) 70%, var(--bg));
+    --dark: color-mix(in oklab, var(--text) 80%, #000); --rack: color-mix(in oklab, var(--accent-2) 22%, var(--st));
+    --metal: color-mix(in oklab, var(--text) 45%, var(--bg)); --canopy: color-mix(in oklab, var(--accent) 55%, #fff);
+    position: relative; width: 100%; height: calc(360px * var(--k)); overflow: hidden;
+  }
+  .stage3d {
+    position: absolute; left: 50%; top: 0; width: 440px; height: 360px; margin-left: -220px;
+    transform: scale(var(--k)); transform-origin: 50% 0; perspective: 1100px; perspective-origin: 50% 30%;
+  }
+  @media (max-width: 480px) { .scene3d { --k: .76; } }
+  @media (max-width: 360px) { .scene3d { --k: .64; } }
+  .world3d {
+    position: absolute; left: 50%; top: 214px; width: 0; height: 0; transform-style: preserve-3d; scale: .84;
+    transform: rotateX(-24deg) rotateY(-24deg);
+    animation: d3-orbit 18s ease-in-out infinite alternate;
+  }
+  @keyframes d3-orbit { from { transform: rotateX(-26deg) rotateY(-32deg); } to { transform: rotateX(-20deg) rotateY(32deg); } }
+
+  /* Box primitive: six outward-facing faces with baked-in lighting (top lit, sides and back shaded) */
+  .b3, .g3 { position: absolute; left: 0; top: 0; transform-style: preserve-3d; }
+  .b3 { transform: translate3d(var(--x, 0px), var(--y, 0px), var(--z, 0px)) rotateY(var(--ry, 0deg)) rotateZ(var(--rz, 0deg)); }
+  .g3 { translate: var(--x, 0px) var(--y, 0px) var(--z, 0px); }
+  .b3 > i { position: absolute; left: 0; top: 0; display: block; backface-visibility: hidden; }
+  .b3 > i:nth-child(1), .b3 > i:nth-child(2) { width: var(--w); height: var(--h); margin: calc(var(--h) / -2) 0 0 calc(var(--w) / -2); }
+  .b3 > i:nth-child(3), .b3 > i:nth-child(4) { width: var(--d); height: var(--h); margin: calc(var(--h) / -2) 0 0 calc(var(--d) / -2); }
+  .b3 > i:nth-child(5), .b3 > i:nth-child(6) { width: var(--w); height: var(--d); margin: calc(var(--d) / -2) 0 0 calc(var(--w) / -2); }
+  .b3 > i:nth-child(1) { transform: translateZ(calc(var(--d) / 2)); background: var(--c); }
+  .b3 > i:nth-child(2) { transform: rotateY(180deg) translateZ(calc(var(--d) / 2)); background: color-mix(in oklab, var(--c) 70%, #000); }
+  .b3 > i:nth-child(3) { transform: rotateY(90deg) translateZ(calc(var(--w) / 2)); background: color-mix(in oklab, var(--c) 78%, #000); }
+  .b3 > i:nth-child(4) { transform: rotateY(-90deg) translateZ(calc(var(--w) / 2)); background: color-mix(in oklab, var(--c) 88%, #000); }
+  .b3 > i:nth-child(5) { transform: rotateX(90deg) translateZ(calc(var(--h) / 2)); background: color-mix(in oklab, var(--c) 80%, #fff); }
+  .b3 > i:nth-child(6) { transform: rotateX(-90deg) translateZ(calc(var(--h) / 2)); background: color-mix(in oklab, var(--c) 55%, #000); }
+  .round > i { border-radius: 4px; }
+  .deck3d > i:nth-child(5) { background: color-mix(in oklab, var(--accent) 14%, var(--bg)); } /* light deck surface, accent edges */
+  /* Battery pack detail: a darker label band on the front, two contacts on top */
+  .pack3d > i:nth-child(1) { background: linear-gradient(90deg, var(--c) 0 68%, color-mix(in oklab, var(--c) 55%, #000) 68% 88%, var(--c) 88%); }
+  .pack3d > i:nth-child(5) { background:
+    radial-gradient(circle at 32% 50%, color-mix(in oklab, #fff 75%, var(--c)) 0 2.5px, transparent 3px),
+    radial-gradient(circle at 68% 50%, color-mix(in oklab, #fff 75%, var(--c)) 0 2.5px, transparent 3px),
+    color-mix(in oklab, var(--c) 80%, #fff); }
+  /* Toothed belt surface and segmented cable duct */
+  .belt3d > i:nth-child(5) { background: repeating-linear-gradient(90deg, var(--dark) 0 3px, color-mix(in oklab, var(--dark) 75%, #fff) 3px 6px); }
+  .duct3d > i:nth-child(1), .duct3d > i:nth-child(5) { background: repeating-linear-gradient(90deg, var(--metal) 0 7px, color-mix(in oklab, var(--metal) 70%, #000) 7px 8px); }
+
+  /* Flat pieces lying on a horizontal plane; positioned with translate/rotate so scale stays free for animation */
+  .flat { position: absolute; left: 0; top: 0; width: var(--fw); height: var(--fh); margin: calc(var(--fh) / -2) 0 0 calc(var(--fw) / -2);
+    translate: var(--x, 0px) var(--y, 0px) var(--z, 0px); rotate: x 90deg; }
+  .floor3d { --fw: 540px; --fh: 400px; --y: 61px; background: radial-gradient(closest-side, color-mix(in oklab, var(--text) 22%, transparent), transparent); }
+  .pad-ring { --fw: 96px; --fh: 96px; --y: -1px; --z: 40px; border-radius: 50%; border: 3px solid color-mix(in oklab, var(--accent) 70%, transparent);
+    display: grid; place-items: center; font: 700 22px/1 var(--font-title); color: var(--accent); }
+  .d3-shadow { --fw: 104px; --fh: 104px; border-radius: 50%; background: radial-gradient(closest-side, rgb(0 0 0 / .45), transparent); opacity: .5;
+    translate: -95px -2px 40px; }
+  .ping3d { --fw: 14px; --fh: 14px; --x: -132px; --y: -48px; --z: -80px; border-radius: 50%; border: 2px solid var(--accent); opacity: 0; }
+  .rotor3d { --fw: 62px; --fh: 62px; --y: -47px; border-radius: 50%;
+    background: radial-gradient(closest-side, color-mix(in oklab, var(--frame) 22%, transparent) 72%, color-mix(in oklab, var(--frame) 55%, transparent) 74%, transparent 78%); }
+  .rotor3d > span { position: absolute; left: 2px; right: 2px; top: 50%; height: 7px; margin-top: -3.5px; border-radius: 50% / 100%;
+    background: linear-gradient(90deg, var(--frame), color-mix(in oklab, var(--frame) 60%, transparent) 42%, var(--dark) 46% 54%, color-mix(in oklab, var(--frame) 60%, transparent) 58%, var(--frame)); }
+  .lens3d { position: absolute; left: 0; top: 0; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #bfe3ff, #0b1220 62%); translate: 0 -25px 34.6px; }
+  .beam3d {
+    position: absolute; left: 0; top: 0; width: 100px; height: 210px; margin: -210px 0 0 -50px; pointer-events: none; opacity: 0;
+    translate: -95px 0 40px; clip-path: polygon(38% 100%, 62% 100%, 100% 0, 0 0);
+    background: linear-gradient(to top, color-mix(in oklab, var(--accent) 50%, transparent), transparent);
+  }
+  .beam3d-b { rotate: y 90deg; }
+
+  /* Status panel on the station's front face, and charge bars on the rack's front face */
+  .bay3d { position: absolute; left: 60px; right: 60px; top: 10px; height: 30px; display: flex; align-items: center; gap: 10px; padding: 0 10px;
+    border-radius: 7px; background: var(--bg); border: 1px solid var(--line); }
+  .bat-icon { position: relative; flex: none; width: 44px; height: 16px; border: 1.5px solid var(--muted); border-radius: 3px; }
+  .bat-icon::after { content: ""; position: absolute; right: -5px; top: 3.5px; width: 3px; height: 6px; border-radius: 1px; background: var(--muted); }
+  .bat-fill, .slot-bar > b { position: absolute; inset: 2px; border-radius: 1.5px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transform-origin: left center; }
+  .bat-fill { transform: scaleX(.55); }
+  .bay-labels { position: relative; flex: 1; height: 14px; font: 600 11px/14px var(--font); color: var(--text); }
+  .bay-labels .lbl { position: absolute; left: 0; top: 0; font-weight: 600; }
+  .lbl-ready, .lbl-swap { opacity: 0; }
+  .led3d { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--color-success, #22a06b); }
+  .slot-bar { position: absolute; top: 7px; width: 28px; height: 7px; border-radius: 2px; background: var(--bg); }
+  .slot-bar-1 { left: 13px; } .slot-bar-2 { left: 69px; }
+  .slot-bar-1 > b { transform: scaleX(0); } .slot-bar-2 > b { transform: scaleX(.55); }
+
+  /* Static frame (reduced motion) */
+  .n3-drone { translate: -95px 0 40px; }
+  .n3-dbat-old, .n3-grip-old, .n3-grip-new, .n3-s1 { visibility: hidden; }
+  .n3-slide { translate: 0px 0 -50px; } /* the gantry sits on the belt */
+  .n3-trolley { translate: 0 0 -30px; }
+  .n3-jaw-l { translate: -5px 0 0; } .n3-jaw-r { translate: 5px 0 0; }
+
+  /* The 24s loop: two visits, one per landing pad */
+  .n3-drone  { animation: n3-drone 24s cubic-bezier(.35, .1, .25, 1) infinite; }
+  .n3-dbat-old { animation: n3-dbat-old 24s linear infinite; }
+  .n3-dbat-new { animation: n3-dbat-new 24s linear infinite; }
+  .n3-slide  { animation: n3-slide 24s ease-in-out infinite; }
+  .n3-trolley { animation: n3-trolley 24s ease-in-out infinite; }
+  .n3-stem   { animation: n3-stem 24s ease-in-out infinite; }
+  .n3-jaw-l  { animation: n3-jaw-l 24s ease-in-out infinite; }
+  .n3-jaw-r  { animation: n3-jaw-r 24s ease-in-out infinite; }
+  .n3-grip-old { animation: n3-grip-old 24s linear infinite; }
+  .n3-grip-new { animation: n3-grip-new 24s linear infinite; }
+  .n3-s1     { animation: n3-s1 24s linear infinite, n3-s1-col 24s linear infinite; }
+  .n3-s2     { animation: n3-s2 24s linear infinite, n3-s2-col 24s linear infinite; }
+  .slot-bar-1 > b { animation: n3-s1-bar 24s linear infinite; }
+  .slot-bar-2 > b { animation: n3-s2-bar 24s linear infinite; }
+  .bat-fill  { animation: n3-bay 24s linear infinite; }
+  .lbl-ready  { animation: n3-lbl-ready 24s linear infinite; }
+  .lbl-swap   { animation: n3-lbl-swap 24s linear infinite; }
+  .lbl-charge { animation: n3-lbl-charge 24s linear infinite; }
+  .led3d     { animation: n3-led 24s linear infinite; }
+  .beam3d    { animation: n3-beam 24s ease-in-out infinite, n3-beam-pos 24s step-end infinite; }
+  .d3-shadow { animation: n3-shadow 24s cubic-bezier(.35, .1, .25, 1) infinite, n3-shadow-s 24s cubic-bezier(.35, .1, .25, 1) infinite, n3-shadow-pos 24s step-end infinite; }
+  .rotor3d > span { animation: d3-spin .16s linear infinite; }
+  .ping3d    { animation: d3-ping 2.4s ease-out infinite; }
+  .ping3d-2  { animation-delay: 1.2s; }
+  @keyframes d3-spin { to { rotate: 360deg; } }
+  @keyframes d3-ping { 0% { scale: 1; opacity: .8; } 100% { scale: 4; opacity: 0; } }
+  @keyframes n3-drone {
+    0% { translate: -95px -300px 40px; }
+    9% { translate: -95px 0px 40px; }
+    39% { translate: -95px 0px 40px; }
+    49.9% { translate: -95px -300px 40px; }
+    50% { translate: 95px -300px 40px; }
+    59% { translate: 95px 0px 40px; }
+    89% { translate: 95px 0px 40px; }
+    100% { translate: 95px -300px 40px; }
+  }
+  @keyframes n3-dbat-old {
+    0% { visibility: visible; }
+    14% { visibility: visible; }
+    14.01% { visibility: hidden; }
+    50% { visibility: hidden; }
+    50.01% { visibility: visible; }
+    64% { visibility: visible; }
+    64.01% { visibility: hidden; }
+    100% { visibility: hidden; }
+  }
+  @keyframes n3-dbat-new {
+    0% { visibility: hidden; }
+    36% { visibility: hidden; }
+    36.01% { visibility: visible; }
+    49.9% { visibility: visible; }
+    49.91% { visibility: hidden; }
+    86% { visibility: hidden; }
+    86.01% { visibility: visible; }
+    100% { visibility: visible; }
+  }
+  @keyframes n3-slide {
+    0% { translate: 0px 0 -50px; }
+    9% { translate: 0px 0 -50px; }
+    12% { translate: -95px 0 -50px; }
+    17% { translate: -95px 0 -50px; }
+    20.5% { translate: 28px 0 -50px; }
+    24.5% { translate: 28px 0 -50px; }
+    26.5% { translate: -28px 0 -50px; }
+    30.5% { translate: -28px 0 -50px; }
+    34% { translate: -95px 0 -50px; }
+    38% { translate: -95px 0 -50px; }
+    42% { translate: 0px 0 -50px; }
+    49.9% { translate: 0px 0 -50px; }
+    50% { translate: 0px 0 -50px; }
+    59% { translate: 0px 0 -50px; }
+    62% { translate: 95px 0 -50px; }
+    67% { translate: 95px 0 -50px; }
+    70.5% { translate: -28px 0 -50px; }
+    74.5% { translate: -28px 0 -50px; }
+    76.5% { translate: 28px 0 -50px; }
+    80.5% { translate: 28px 0 -50px; }
+    84% { translate: 95px 0 -50px; }
+    88% { translate: 95px 0 -50px; }
+    92% { translate: 0px 0 -50px; }
+    100% { translate: 0px 0 -50px; }
+  }
+  @keyframes n3-trolley {
+    0% { translate: 0 0 -30px; }
+    9% { translate: 0 0 -30px; }
+    12% { translate: 0 0 90px; }
+    17% { translate: 0 0 90px; }
+    20.5% { translate: 0 0 -30px; }
+    24.5% { translate: 0 0 -30px; }
+    26.5% { translate: 0 0 -30px; }
+    30.5% { translate: 0 0 -30px; }
+    34% { translate: 0 0 90px; }
+    38% { translate: 0 0 90px; }
+    42% { translate: 0 0 -30px; }
+    49.9% { translate: 0 0 -30px; }
+    50% { translate: 0 0 -30px; }
+    59% { translate: 0 0 -30px; }
+    62% { translate: 0 0 90px; }
+    67% { translate: 0 0 90px; }
+    70.5% { translate: 0 0 -30px; }
+    74.5% { translate: 0 0 -30px; }
+    76.5% { translate: 0 0 -30px; }
+    80.5% { translate: 0 0 -30px; }
+    84% { translate: 0 0 90px; }
+    88% { translate: 0 0 90px; }
+    92% { translate: 0 0 -30px; }
+    100% { translate: 0 0 -30px; }
+  }
+  @keyframes n3-stem {
+    0% { translate: 0 0px 0; }
+    12% { translate: 0 0px 0; }
+    14% { translate: 0 27px 0; }
+    15% { translate: 0 27px 0; }
+    17% { translate: 0 0px 0; }
+    20.5% { translate: 0 0px 0; }
+    22.5% { translate: 0 53px 0; }
+    23% { translate: 0 53px 0; }
+    24.5% { translate: 0 0px 0; }
+    26.5% { translate: 0 0px 0; }
+    28.5% { translate: 0 53px 0; }
+    29% { translate: 0 53px 0; }
+    30.5% { translate: 0 0px 0; }
+    34% { translate: 0 0px 0; }
+    36% { translate: 0 27px 0; }
+    36.5% { translate: 0 27px 0; }
+    38% { translate: 0 0px 0; }
+    49.9% { translate: 0 0px 0; }
+    50% { translate: 0 0px 0; }
+    62% { translate: 0 0px 0; }
+    64% { translate: 0 27px 0; }
+    65% { translate: 0 27px 0; }
+    67% { translate: 0 0px 0; }
+    70.5% { translate: 0 0px 0; }
+    72.5% { translate: 0 53px 0; }
+    73% { translate: 0 53px 0; }
+    74.5% { translate: 0 0px 0; }
+    76.5% { translate: 0 0px 0; }
+    78.5% { translate: 0 53px 0; }
+    79% { translate: 0 53px 0; }
+    80.5% { translate: 0 0px 0; }
+    84% { translate: 0 0px 0; }
+    86% { translate: 0 27px 0; }
+    86.5% { translate: 0 27px 0; }
+    88% { translate: 0 0px 0; }
+    100% { translate: 0 0px 0; }
+  }
+  @keyframes n3-jaw-l {
+    0% { translate: -5px 0 0; }
+    14% { translate: -5px 0 0; }
+    14.4% { translate: 0px 0 0; }
+    22.5% { translate: 0px 0 0; }
+    22.9% { translate: -5px 0 0; }
+    28.5% { translate: -5px 0 0; }
+    28.9% { translate: 0px 0 0; }
+    36% { translate: 0px 0 0; }
+    36.4% { translate: -5px 0 0; }
+    49.9% { translate: -5px 0 0; }
+    50% { translate: -5px 0 0; }
+    64% { translate: -5px 0 0; }
+    64.4% { translate: 0px 0 0; }
+    72.5% { translate: 0px 0 0; }
+    72.9% { translate: -5px 0 0; }
+    78.5% { translate: -5px 0 0; }
+    78.9% { translate: 0px 0 0; }
+    86% { translate: 0px 0 0; }
+    86.4% { translate: -5px 0 0; }
+    100% { translate: -5px 0 0; }
+  }
+  @keyframes n3-jaw-r {
+    0% { translate: 5px 0 0; }
+    14% { translate: 5px 0 0; }
+    14.4% { translate: 0px 0 0; }
+    22.5% { translate: 0px 0 0; }
+    22.9% { translate: 5px 0 0; }
+    28.5% { translate: 5px 0 0; }
+    28.9% { translate: 0px 0 0; }
+    36% { translate: 0px 0 0; }
+    36.4% { translate: 5px 0 0; }
+    49.9% { translate: 5px 0 0; }
+    50% { translate: 5px 0 0; }
+    64% { translate: 5px 0 0; }
+    64.4% { translate: 0px 0 0; }
+    72.5% { translate: 0px 0 0; }
+    72.9% { translate: 5px 0 0; }
+    78.5% { translate: 5px 0 0; }
+    78.9% { translate: 0px 0 0; }
+    86% { translate: 0px 0 0; }
+    86.4% { translate: 5px 0 0; }
+    100% { translate: 5px 0 0; }
+  }
+  @keyframes n3-grip-old {
+    0% { visibility: hidden; }
+    14% { visibility: hidden; }
+    14.01% { visibility: visible; }
+    22.5% { visibility: visible; }
+    22.51% { visibility: hidden; }
+    64% { visibility: hidden; }
+    64.01% { visibility: visible; }
+    72.5% { visibility: visible; }
+    72.51% { visibility: hidden; }
+    100% { visibility: hidden; }
+  }
+  @keyframes n3-grip-new {
+    0% { visibility: hidden; }
+    28.5% { visibility: hidden; }
+    28.51% { visibility: visible; }
+    36% { visibility: visible; }
+    36.01% { visibility: hidden; }
+    78.5% { visibility: hidden; }
+    78.51% { visibility: visible; }
+    86% { visibility: visible; }
+    86.01% { visibility: hidden; }
+    100% { visibility: hidden; }
+  }
+  @keyframes n3-s1 {
+    0% { visibility: visible; }
+    28.5% { visibility: visible; }
+    28.51% { visibility: hidden; }
+    72.5% { visibility: hidden; }
+    72.51% { visibility: visible; }
+    100% { visibility: visible; }
+  }
+  @keyframes n3-s2 {
+    0% { visibility: hidden; }
+    22.5% { visibility: hidden; }
+    22.51% { visibility: visible; }
+    78.5% { visibility: visible; }
+    78.51% { visibility: hidden; }
+    100% { visibility: hidden; }
+  }
+  @keyframes n3-s1-col {
+    0% { --c: var(--color-success, #22a06b); }
+    72.5% { --c: var(--color-success, #22a06b); }
+    72.51% { --c: var(--color-error, #e5484d); }
+    87% { --c: var(--color-error, #e5484d); }
+    98.5% { --c: var(--color-success, #22a06b); }
+    100% { --c: var(--color-success, #22a06b); }
+  }
+  @keyframes n3-s2-col {
+    0% { --c: var(--color-error, #e5484d); }
+    37% { --c: var(--color-error, #e5484d); }
+    48.5% { --c: var(--color-success, #22a06b); }
+    100% { --c: var(--color-success, #22a06b); }
+  }
+  @keyframes n3-s1-bar {
+    0% { transform: scaleX(1); }
+    28.5% { transform: scaleX(1); }
+    28.51% { transform: scaleX(0); }
+    72.5% { transform: scaleX(0); }
+    72.51% { transform: scaleX(.16); }
+    87% { transform: scaleX(.16); }
+    98.5% { transform: scaleX(1); }
+    100% { transform: scaleX(1); }
+  }
+  @keyframes n3-s2-bar {
+    0% { transform: scaleX(0); }
+    22.5% { transform: scaleX(0); }
+    22.51% { transform: scaleX(.16); }
+    37% { transform: scaleX(.16); }
+    48.5% { transform: scaleX(1); }
+    78.5% { transform: scaleX(1); }
+    78.51% { transform: scaleX(0); }
+    100% { transform: scaleX(0); }
+  }
+  @keyframes n3-bay {
+    0% { transform: scaleX(1); }
+    22.5% { transform: scaleX(1); }
+    22.51% { transform: scaleX(0.16); }
+    37% { transform: scaleX(0.16); }
+    48.5% { transform: scaleX(1); }
+    49.9% { transform: scaleX(1); }
+    50% { transform: scaleX(1); }
+    72.5% { transform: scaleX(1); }
+    72.51% { transform: scaleX(0.16); }
+    87% { transform: scaleX(0.16); }
+    98.5% { transform: scaleX(1); }
+    100% { transform: scaleX(1); }
+  }
+  @keyframes n3-lbl-ready {
+    0% { opacity: 1; }
+    13.5% { opacity: 1; }
+    14% { opacity: 0; }
+    47.75% { opacity: 0; }
+    48.5% { opacity: 1; }
+    49.9% { opacity: 1; }
+    50% { opacity: 1; }
+    63.5% { opacity: 1; }
+    64% { opacity: 0; }
+    97.75% { opacity: 0; }
+    98.5% { opacity: 1; }
+    100% { opacity: 1; }
+  }
+  @keyframes n3-lbl-swap {
+    0% { opacity: 0; }
+    13.5% { opacity: 0; }
+    14% { opacity: 1; }
+    36% { opacity: 1; }
+    36.75% { opacity: 0; }
+    49.9% { opacity: 0; }
+    50% { opacity: 0; }
+    63.5% { opacity: 0; }
+    64% { opacity: 1; }
+    86% { opacity: 1; }
+    86.75% { opacity: 0; }
+    100% { opacity: 0; }
+  }
+  @keyframes n3-lbl-charge {
+    0% { opacity: 0; }
+    36.5% { opacity: 0; }
+    37% { opacity: 1; }
+    47.5% { opacity: 1; }
+    48.25% { opacity: 0; }
+    49.9% { opacity: 0; }
+    50% { opacity: 0; }
+    86.5% { opacity: 0; }
+    87% { opacity: 1; }
+    97.5% { opacity: 1; }
+    98.25% { opacity: 0; }
+    100% { opacity: 0; }
+  }
+  @keyframes n3-led {
+    0% { opacity: 1; }
+    37% { opacity: 1; }
+    38.5% { opacity: 0.25; }
+    40% { opacity: 1; }
+    41.5% { opacity: 0.25; }
+    43% { opacity: 1; }
+    44.5% { opacity: 0.25; }
+    46% { opacity: 1; }
+    47.5% { opacity: 1; }
+    49.9% { opacity: 1; }
+    50% { opacity: 1; }
+    87% { opacity: 1; }
+    88.5% { opacity: 0.25; }
+    90% { opacity: 1; }
+    91.5% { opacity: 0.25; }
+    93% { opacity: 1; }
+    94.5% { opacity: 0.25; }
+    96% { opacity: 1; }
+    97.5% { opacity: 1; }
+    100% { opacity: 1; }
+  }
+  @keyframes n3-beam {
+    0% { opacity: 0; }
+    1.5% { opacity: 1; }
+    8% { opacity: 1; }
+    10% { opacity: 0; }
+    49.9% { opacity: 0; }
+    50% { opacity: 0; }
+    51.5% { opacity: 1; }
+    58% { opacity: 1; }
+    60% { opacity: 0; }
+    100% { opacity: 0; }
+  }
+  @keyframes n3-beam-pos {
+    0% { translate: -95px 0 40px; }
+    49.9% { translate: -95px 0 40px; }
+    50% { translate: 95px 0 40px; }
+    100% { translate: 95px 0 40px; }
+  }
+  @keyframes n3-shadow {
+    0% { opacity: 0; }
+    9% { opacity: 0.5; }
+    39% { opacity: 0.5; }
+    49.9% { opacity: 0; }
+    50% { opacity: 0; }
+    59% { opacity: 0.5; }
+    89% { opacity: 0.5; }
+    100% { opacity: 0; }
+  }
+  @keyframes n3-shadow-s {
+    0% { scale: 0.25; }
+    9% { scale: 1; }
+    39% { scale: 1; }
+    49.9% { scale: 0.25; }
+    50% { scale: 0.25; }
+    59% { scale: 1; }
+    89% { scale: 1; }
+    100% { scale: 0.25; }
+  }
+  @keyframes n3-shadow-pos {
+    0% { translate: -95px -2px 40px; }
+    49.9% { translate: -95px -2px 40px; }
+    50% { translate: 95px -2px 40px; }
+    100% { translate: 95px -2px 40px; }
+  }
+  @keyframes n3-step-land {
+    0% { background: var(--bg); color: var(--muted); border-color: var(--line); }
+    0.5% { background: var(--bg); color: var(--muted); border-color: var(--line); }
+    1% { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+    8.5% { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+    9% { background: var(--bg); color: var(--muted); border-color: var(--line); }
+    49.9% { background: var(--bg); color: var(--muted); border-color: var(--line); }
+    50% { background: var(--bg); color: var(--muted); border-color: var(--line); }
+    50.5% { background: var(--bg); color: var(--muted); border-color: var(--line); }
+    51% { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+    58.5% { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+    59% { background: var(--bg); color: var(--muted); border-color: var(--line); }
+    100% { background: var(--bg); color: var(--muted); border-color: var(--line); }
+  }
+  @keyframes n3-step-swap {
+    0% { background: var(--bg); color: var(--muted); border-color: var(--line); }
+    13.5% { background: var(--bg); color: var(--muted); border-color: var(--line); }
+    14% { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+    36% { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+    36.5% { background: var(--bg); color: var(--muted); border-color: var(--line); }
+    49.9% { background: var(--bg); color: var(--muted); border-color: var(--line); }
+    50% { background: var(--bg); color: var(--muted); border-color: var(--line); }
+    63.5% { background: var(--bg); color: var(--muted); border-color: var(--line); }
+    64% { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+    86% { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+    86.5% { background: var(--bg); color: var(--muted); border-color: var(--line); }
+    100% { background: var(--bg); color: var(--muted); border-color: var(--line); }
+  }
+  @keyframes n3-step-fly {
+    0% { background: var(--bg); color: var(--muted); border-color: var(--line); }
+    39% { background: var(--bg); color: var(--muted); border-color: var(--line); }
+    39.5% { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+    48.5% { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+    49% { background: var(--bg); color: var(--muted); border-color: var(--line); }
+    49.9% { background: var(--bg); color: var(--muted); border-color: var(--line); }
+    50% { background: var(--bg); color: var(--muted); border-color: var(--line); }
+    89% { background: var(--bg); color: var(--muted); border-color: var(--line); }
+    89.5% { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+    98.5% { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+    99% { background: var(--bg); color: var(--muted); border-color: var(--line); }
+    100% { background: var(--bg); color: var(--muted); border-color: var(--line); }
+  }
+  @keyframes n3-step-charge {
+    0% { background: var(--bg); color: var(--muted); border-color: var(--line); }
+    36.5% { background: var(--bg); color: var(--muted); border-color: var(--line); }
+    37% { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+    48% { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+    48.5% { background: var(--bg); color: var(--muted); border-color: var(--line); }
+    49.9% { background: var(--bg); color: var(--muted); border-color: var(--line); }
+    50% { background: var(--bg); color: var(--muted); border-color: var(--line); }
+    86.5% { background: var(--bg); color: var(--muted); border-color: var(--line); }
+    87% { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+    98% { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+    98.5% { background: var(--bg); color: var(--muted); border-color: var(--line); }
+    100% { background: var(--bg); color: var(--muted); border-color: var(--line); }
+  }
+
+  /* Step pills under the illustration, highlighted in sync with the loop */
+  .hero-steps { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; list-style: none; padding: 0; margin: 14px 0 0; }
+  .hero-steps li {
+    font: 600 .75rem/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
+    padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg);
+  }
+  .hero-steps li:nth-child(1) { animation: n3-step-land 24s infinite; }
+  .hero-steps li:nth-child(2) { animation: n3-step-swap 24s infinite; }
+  .hero-steps li:nth-child(3) { animation: n3-step-fly 24s infinite; }
+  .hero-steps li:nth-child(4) { animation: n3-step-charge 24s infinite; }
+  /* Pause the loop while the hero is scrolled out of view (class set by JS) */
+  .hero-visual.paused, .hero-visual.paused * { animation-play-state: paused !important; }
+
+  /* Scroll reveal: elements fade up as they enter the viewport; siblings stagger via --d (set by JS) */
+  html.js .reveal { opacity: 0; transform: translateY(24px);
+    transition: opacity .7s cubic-bezier(.2, .7, .2, 1) var(--d, 0s), transform .7s cubic-bezier(.2, .7, .2, 1) var(--d, 0s); }
+  html.js .reveal.in { opacity: 1; transform: none; }
+
+  /* Hover: cards lift, icons tilt, avatars grow (pointer devices only) */
+  .icon, .member .avatar > div, .btn .arrow-ne { transition: transform .35s cubic-bezier(.3, 1.5, .5, 1); }
+  @media (hover: hover) {
+    .grid > .card, .stack > .card, .team > .card, a.card { transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease; }
+    .grid > .card:hover, .stack > .card:hover, .team > .card:hover, a.card:hover {
+      transform: translateY(-4px); box-shadow: 0 12px 24px -8px rgb(0 0 0 / .18), 0 4px 8px -4px rgb(0 0 0 / .1);
+    }
+    a.card:hover { border-color: var(--accent); }
+    .card:hover .icon { transform: rotate(-8deg) scale(1.1); }
+    .member:hover .avatar > div { transform: scale(1.06); }
+    .btn:hover .arrow-ne { transform: translate(2px, -2px); }
+  }
+
+  /* Theme toggle: the icon spins in; the new theme is revealed in a circle from the button (View Transitions, where supported) */
+  @keyframes icon-spin { from { transform: rotate(-120deg) scale(.4); opacity: 0; } }
+  .theme-btn svg.spin { animation: icon-spin .5s cubic-bezier(.3, 1.4, .5, 1); }
+  ::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+
+  /* Reading progress line under the nav (scroll-driven animation; browsers without support simply don't show it) */
+  @supports (animation-timeline: scroll()) {
+    .nav.navbar::after {
+      content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; pointer-events: none;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      transform: scaleX(0); transform-origin: 0 50%;
+      animation: read-progress linear both; animation-timeline: scroll(root);
+    }
+    @keyframes read-progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  }
+
+  @media print { html.js .reveal { opacity: 1; transform: none; } }
+
+  /* Reduced motion: no animation or transitions anywhere; the illustration shows its static landed frame */
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+    html.js .reveal { opacity: 1; transform: none; }
+  }
 </style>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
 
-<header class="nav">
+<header class="nav navbar">
   <div class="wrap">
     <a class="brand" href="#top"><img src="assets/logo.svg" alt="" width="28" height="28">NodeStation</a>
     <nav aria-label="Sections">
-      <ul>
+      <ul class="menu menu-horizontal menu-sm">
         <li><a href="#problem">Mission</a></li>
         <li><a href="#solution">Solution</a></li>
         <li><a href="#demo">Demo</a></li>
@@ -227,7 +871,7 @@
         <li><a href="#resources">Resources</a></li>
       </ul>
     </nav>
-    <button class="theme-btn" id="themeBtn" type="button" aria-label="Toggle light or dark theme">
+    <button class="btn btn-ghost btn-circle btn-sm theme-btn" id="themeBtn" type="button" aria-label="Toggle light or dark theme">
       <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"></svg>
     </button>
   </div>
@@ -236,30 +880,150 @@
 <main id="main">
 
   <!-- 1. HERO -->
-  <section class="hero" id="top">
-    <div class="wrap">
+  <section class="hero-section" id="top">
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
       <p class="eyebrow">CPE 423 Senior Design</p>
       <h1><span class="grad">NodeStation</span></h1>
       <p class="tagline">An autonomous ground station that lands drones, swaps their batteries mechanically, and recharges the used packs, so drone fleets can keep operating without human intervention.</p>
       <div class="meta">
-        <span><strong>Stevens Institute of Technology</strong></span>
-        <span>Fall 2026 – Spring 2027</span>
-        <span>Advisor: <strong>Ying Wang</strong></span>
+        <span class="badge badge-outline"><strong>Stevens Institute of Technology</strong></span>
+        <span class="badge badge-outline">Fall 2026 – Spring 2027</span>
+        <span class="badge badge-outline"><span>Advisor: <strong>Ying Wang</strong></span></span>
       </div>
       <p class="team-line">Team: <span id="heroTeam"></span></p>
       <div class="btns">
-        <a class="btn primary" href="https://github.com/N0deStation/N0de" target="_blank" rel="noopener">
+        <a class="btn btn-primary" href="https://github.com/N0deStation/N0de" target="_blank" rel="noopener">
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.56-.29-5.25-1.28-5.25-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.42-2.7 5.4-5.27 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z"/></svg>
           GitHub repo
         </a>
-        <a class="btn" id="heroReport" href="assets/report.pdf">
+        <a class="btn btn-outline" id="heroReport" href="assets/report.pdf">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>
           Final report
         </a>
-        <a class="btn" id="heroVideo" href="#demo">
+        <a class="btn btn-outline" id="heroVideo" href="#demo">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m10 8 6 4-6 4z"/></svg>
           Demo video
         </a>
+      </div>
+      </div>
+      <div class="hero-visual">
+        <!-- 3D illustration built from CSS 3D boxes (no WebGL or libraries). Generated from one schedule, 24s loop, two visits.
+             The station has two landing pads, a charging rack with two slots, and a gantry arm that rides a horizontal belt:
+             a drone lands on pad 1 guided by a sensor beam; the arm slides over, lifts the depleted pack off the drone, sets it
+             in the empty rack slot, picks up the charged pack from the other slot and installs it in the drone. Only once the
+             swap is complete does the received pack start charging, while the drone relaunches. The second visit uses pad 2
+             and the other slot, which returns the rack to its starting state.
+             Boxes: --w/--h/--d size, --x/--y/--z position, --c color. y points down; the deck's top surface is y = 0. -->
+        <div class="scene3d" role="img" aria-label="3D illustration of the station: drones land on one of two landing pads, a robotic arm riding a horizontal belt swaps each drone's depleted battery for a charged one from the charging rack, and once the swap is complete the drone takes off while the station charges the battery it received.">
+          <div class="stage3d">
+            <div class="world3d">
+              <div class="flat floor3d"></div>
+
+              <!-- station body with status panel, landing deck, pads -->
+              <div class="b3" style="--w:280px;--h:50px;--d:170px;--x:0px;--y:35px;--z:0px;--c:var(--st)"><i><span class="bay3d"><span class="bat-icon"><span class="bat-fill"></span></span><span class="bay-labels"><b class="lbl lbl-ready">Ready</b><b class="lbl lbl-swap">Swapping</b><b class="lbl lbl-charge">Charging</b></span><span class="led3d"></span></span></i><i></i><i></i><i></i><i></i><i></i></div>
+              <div class="b3 deck3d" style="--w:300px;--h:10px;--d:190px;--x:0px;--y:5px;--z:0px;--c:var(--accent)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+              <div class="flat pad-ring" style="--x:-95px">1</div>
+              <div class="flat pad-ring" style="--x:95px">2</div>
+              <div class="flat d3-shadow"></div>
+
+              <!-- horizontal belt the arm rides on: rail with toothed belt, end pulley housings, cable duct -->
+              <div class="b3 belt3d" style="--w:290px;--h:8px;--d:18px;--x:0px;--y:-4px;--z:-50px;--c:var(--dark)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+              <div class="b3 round" style="--w:12px;--h:14px;--d:24px;--x:-147px;--y:-7px;--z:-50px;--c:var(--metal)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+              <div class="b3 round" style="--w:12px;--h:14px;--d:24px;--x:147px;--y:-7px;--z:-50px;--c:var(--metal)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+              <div class="b3 duct3d" style="--w:290px;--h:6px;--d:6px;--x:0px;--y:-3px;--z:-37px;--c:var(--metal)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+
+              <!-- charging rack (two slots) with its charge bars, and the packs sitting in it -->
+              <div class="b3" style="--w:110px;--h:20px;--d:30px;--x:0px;--y:-10px;--z:-80px;--c:var(--rack)"><i><span class="slot-bar slot-bar-1"><b></b></span><span class="slot-bar slot-bar-2"><b></b></span></i><i></i><i></i><i></i><i></i><i></i></div>
+              <div class="b3 pack3d n3-s1" style="--w:36px;--h:12px;--d:26px;--x:-28px;--y:-26px;--z:-80px;--c:var(--color-success, #22a06b)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+              <div class="b3 pack3d n3-s2" style="--w:36px;--h:12px;--d:26px;--x:28px;--y:-26px;--z:-80px;--c:var(--color-warning, #f5a524)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+
+              <!-- antenna with network pings -->
+              <div class="b3" style="--w:4px;--h:44px;--d:4px;--x:-132px;--y:-22px;--z:-80px;--c:var(--frame)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+              <div class="b3 round" style="--w:10px;--h:10px;--d:10px;--x:-132px;--y:-48px;--z:-80px;--c:var(--accent-2)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+              <div class="flat ping3d"></div>
+              <div class="flat ping3d ping3d-2"></div>
+
+              <!-- sensor / camera guidance beam over the active pad -->
+              <div class="beam3d"></div>
+              <div class="beam3d beam3d-b"></div>
+
+              <!-- robotic arm: gantry riding the belt (x), trolley on the boom (z), telescoping stem and gripper (y) -->
+              <div class="g3 n3-slide">
+                <div class="b3 round" style="--w:40px;--h:8px;--d:26px;--x:0px;--y:-12px;--z:0px;--c:var(--accent)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                <div class="b3" style="--w:12px;--h:12px;--d:14px;--x:24px;--y:-13px;--z:0px;--c:var(--dark)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                <div class="b3" style="--w:14px;--h:118px;--d:14px;--x:0px;--y:-75px;--z:0px;--c:var(--metal)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                <div class="b3" style="--w:20px;--h:6px;--d:20px;--x:0px;--y:-19px;--z:0px;--c:var(--frame)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                <div class="g3" style="--y:-138px">
+                  <div class="b3 round" style="--w:24px;--h:14px;--d:24px;--x:0px;--y:0px;--z:0px;--c:var(--accent)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                  <div class="b3" style="--w:5px;--h:6px;--d:150px;--x:8px;--y:0px;--z:32px;--c:var(--accent-2)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                  <div class="b3" style="--w:5px;--h:6px;--d:150px;--x:-8px;--y:0px;--z:32px;--c:var(--accent-2)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                  <div class="b3" style="--w:12px;--h:3px;--d:4px;--x:0px;--y:-2px;--z:-25px;--c:var(--accent-2)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                  <div class="b3" style="--w:12px;--h:3px;--d:4px;--x:0px;--y:-2px;--z:5px;--c:var(--accent-2)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                  <div class="b3" style="--w:12px;--h:3px;--d:4px;--x:0px;--y:-2px;--z:59px;--c:var(--accent-2)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                  <div class="b3" style="--w:12px;--h:3px;--d:4px;--x:0px;--y:-2px;--z:89px;--c:var(--accent-2)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                  <div class="b3" style="--w:26px;--h:12px;--d:8px;--x:0px;--y:0px;--z:-45px;--c:var(--dark)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                  <div class="b3" style="--w:26px;--h:12px;--d:8px;--x:0px;--y:0px;--z:109px;--c:var(--dark)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                  <div class="g3 n3-trolley">
+                    <div class="b3 round" style="--w:26px;--h:12px;--d:20px;--x:0px;--y:0px;--z:0px;--c:var(--accent)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                    <div class="b3" style="--w:9px;--h:34px;--d:9px;--x:0px;--y:23px;--z:0px;--c:var(--metal)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                    <div class="g3 n3-stem">
+                      <div class="b3" style="--w:5px;--h:70px;--d:5px;--x:0px;--y:15px;--z:0px;--c:var(--frame)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                      <div class="b3 round" style="--w:46px;--h:6px;--d:24px;--x:0px;--y:50px;--z:0px;--c:var(--dark)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                      <div class="g3 n3-jaw-l"><div class="b3" style="--w:3px;--h:12px;--d:22px;--x:-19.5px;--y:59px;--z:0px;--c:var(--dark)"><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+                      <div class="g3 n3-jaw-r"><div class="b3" style="--w:3px;--h:12px;--d:22px;--x:19.5px;--y:59px;--z:0px;--c:var(--dark)"><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+                      <div class="b3 pack3d n3-grip-old" style="--w:36px;--h:12px;--d:26px;--x:0px;--y:59px;--z:0px;--c:var(--color-error, #e5484d)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                      <div class="b3 pack3d n3-grip-new" style="--w:36px;--h:12px;--d:26px;--x:0px;--y:59px;--z:0px;--c:var(--color-success, #22a06b)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- drone -->
+              <div class="g3 n3-drone">
+                <div class="b3 pack3d n3-dbat-old" style="--w:36px;--h:12px;--d:26px;--x:0px;--y:-52px;--z:0px;--c:var(--color-error, #e5484d)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                <div class="b3 pack3d n3-dbat-new" style="--w:36px;--h:12px;--d:26px;--x:0px;--y:-52px;--z:0px;--c:var(--color-success, #22a06b)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                <div class="b3 round" style="--w:56px;--h:14px;--d:56px;--x:0px;--y:-33px;--z:0px;--c:var(--accent)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                <div class="b3 round" style="--w:44px;--h:6px;--d:44px;--x:0px;--y:-43px;--z:0px;--c:var(--canopy)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                <div class="b3" style="--w:22px;--h:8px;--d:8px;--x:0px;--y:-32px;--z:30px;--c:var(--dark)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                <div class="b3" style="--w:10px;--h:10px;--d:10px;--x:0px;--y:-25px;--z:29px;--c:var(--dark)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                <div class="lens3d"></div>
+                <div class="b3" style="--w:44px;--h:5px;--d:7px;--x:36px;--y:-36px;--z:36px;--c:var(--frame);--ry:-45deg"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                <div class="b3" style="--w:44px;--h:5px;--d:7px;--x:-36px;--y:-36px;--z:-36px;--c:var(--frame);--ry:-45deg"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                <div class="b3" style="--w:44px;--h:5px;--d:7px;--x:36px;--y:-36px;--z:-36px;--c:var(--frame);--ry:45deg"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                <div class="b3" style="--w:44px;--h:5px;--d:7px;--x:-36px;--y:-36px;--z:36px;--c:var(--frame);--ry:45deg"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                <div class="b3 round" style="--w:12px;--h:10px;--d:12px;--x:52px;--y:-38px;--z:52px;--c:var(--accent-2)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                <div class="b3 round" style="--w:12px;--h:10px;--d:12px;--x:-52px;--y:-38px;--z:-52px;--c:var(--accent-2)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                <div class="b3 round" style="--w:12px;--h:10px;--d:12px;--x:52px;--y:-38px;--z:-52px;--c:var(--accent-2)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                <div class="b3 round" style="--w:12px;--h:10px;--d:12px;--x:-52px;--y:-38px;--z:52px;--c:var(--accent-2)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                <div class="b3" style="--w:8px;--h:3px;--d:8px;--x:52px;--y:-44.5px;--z:52px;--c:var(--dark)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                <div class="b3" style="--w:8px;--h:3px;--d:8px;--x:-52px;--y:-44.5px;--z:-52px;--c:var(--dark)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                <div class="b3" style="--w:8px;--h:3px;--d:8px;--x:52px;--y:-44.5px;--z:-52px;--c:var(--dark)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                <div class="b3" style="--w:8px;--h:3px;--d:8px;--x:-52px;--y:-44.5px;--z:52px;--c:var(--dark)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                <div class="flat rotor3d" style="--x:52px;--z:52px"><span></span></div>
+                <div class="flat rotor3d" style="--x:-52px;--z:-52px"><span></span></div>
+                <div class="flat rotor3d" style="--x:52px;--z:-52px"><span></span></div>
+                <div class="flat rotor3d" style="--x:-52px;--z:52px"><span></span></div>
+                <div class="b3" style="--w:3px;--h:3px;--d:3px;--x:59px;--y:-36px;--z:59px;--c:color-mix(in oklab, var(--accent) 40%, #fff)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                <div class="b3" style="--w:3px;--h:3px;--d:3px;--x:-59px;--y:-36px;--z:-59px;--c:color-mix(in oklab, var(--accent) 40%, #fff)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                <div class="b3" style="--w:3px;--h:3px;--d:3px;--x:59px;--y:-36px;--z:-59px;--c:color-mix(in oklab, var(--accent) 40%, #fff)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                <div class="b3" style="--w:3px;--h:3px;--d:3px;--x:-59px;--y:-36px;--z:59px;--c:color-mix(in oklab, var(--accent) 40%, #fff)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                <div class="b3" style="--w:3px;--h:23px;--d:3px;--x:23px;--y:-15px;--z:18px;--c:var(--frame);--rz:-15deg"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                <div class="b3" style="--w:3px;--h:23px;--d:3px;--x:-23px;--y:-15px;--z:18px;--c:var(--frame);--rz:15deg"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                <div class="b3" style="--w:3px;--h:23px;--d:3px;--x:23px;--y:-15px;--z:-18px;--c:var(--frame);--rz:-15deg"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                <div class="b3" style="--w:3px;--h:23px;--d:3px;--x:-23px;--y:-15px;--z:-18px;--c:var(--frame);--rz:15deg"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                <div class="b3 round" style="--w:4px;--h:4px;--d:66px;--x:26px;--y:-2px;--z:0px;--c:var(--frame)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                <div class="b3 round" style="--w:4px;--h:4px;--d:66px;--x:-26px;--y:-2px;--z:0px;--c:var(--frame)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <ol class="hero-steps" aria-hidden="true">
+          <li>Land</li>
+          <li>Swap</li>
+          <li>Relaunch</li>
+          <li>Recharge</li>
+        </ol>
       </div>
     </div>
   </section>
@@ -276,10 +1040,10 @@
       <p class="pull">That is why we built Node.</p>
       <h3 class="subhead">By the statistics</h3>
       <div class="stats">
-        <div class="card stat"><div class="label">MK27 drones only have a max battery life of</div><div class="value">15 miles</div><div class="label">one way trip</div></div>
-        <div class="card stat"><div class="label">Amazon has completed over</div><div class="value">2 million</div><div class="label">deliveries in 2025 alone</div></div>
+        <div class="stat"><div class="stat-title">MK27 drones only have a max battery life of</div><div class="stat-value">15 miles</div><div class="stat-desc">one way trip</div></div>
+        <div class="stat"><div class="stat-title">Amazon has completed over</div><div class="stat-value">2 million</div><div class="stat-desc">deliveries in 2025 alone</div></div>
       </div>
-      <span class="todo todo-block">TODO: add citations for these stats</span>
+      <span class="todo badge badge-warning badge-soft todo-block">TODO: add citations for these stats</span>
     </div>
   </section>
 
@@ -292,32 +1056,42 @@
       <p class="lead">As four graduating engineering students, we analyzed the UAV market and recognized a critical gap in this industry. Most businesses focus on traditional charging stations rather than what we envision at Node; we are engineering a faster way for the drones to take off, bypassing the wait time.</p>
       <h3 class="subhead">Project description</h3>
       <div class="card abstract">
-        <p>The rise of autonomous drone technology has enabled many use case scenarios; however, they are very limited by their battery longevity, thus limiting their capabilities. By providing a way to extend a drone’s travel distance without sacrificing time, drones will be able to expand their usage capabilities without being limited by their battery size.</p>
-        <p>To address this, the goal of this senior design project is to build a working prototype station that will swap a drone's battery without any (if possible) human involvement. The station will guide the drone to land using sensors and cameras, then swap the drone's depleted battery for one that is sufficiently charged. This will be paired with a monitoring system that will report and track landing records, station status, and battery levels.</p>
-        <p>By the end of the project, the team is aiming to provide a final report, a working prototype, and a video demonstration of the working drone station (landing, battery swapping, and monitoring/reporting inside an indoor environment).</p>
+        <div class="card-body">
+          <p>The rise of autonomous drone technology has enabled many use case scenarios; however, they are very limited by their battery longevity, thus limiting their capabilities. By providing a way to extend a drone’s travel distance without sacrificing time, drones will be able to expand their usage capabilities without being limited by their battery size.</p>
+          <p>To address this, the goal of this senior design project is to build a working prototype station that will swap a drone's battery without any (if possible) human involvement. The station will guide the drone to land using sensors and cameras, then swap the drone's depleted battery for one that is sufficiently charged. This will be paired with a monitoring system that will report and track landing records, station status, and battery levels.</p>
+          <p>By the end of the project, the team is aiming to provide a final report, a working prototype, and a video demonstration of the working drone station (landing, battery swapping, and monitoring/reporting inside an indoor environment).</p>
+        </div>
       </div>
       <div class="grid">
         <article class="card">
-          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg></div>
-          <h3>Autonomous landing</h3>
-          <p>Sensors and cameras guide the drone onto the station.</p>
+          <div class="card-body">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg></div>
+            <h3 class="card-title">Autonomous landing</h3>
+            <p>Sensors and cameras guide the drone onto the station.</p>
+          </div>
         </article>
         <article class="card">
-          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3l4 4-4 4M21 7H9M7 21l-4-4 4-4M3 17h12"/></svg></div>
-          <h3>Mechanical battery swap</h3>
-          <p>A mechanism exchanges the depleted pack for a charged one.</p>
-          <span class="todo todo-block">TODO: mechanism type and swap sequence</span>
+          <div class="card-body">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3l4 4-4 4M21 7H9M7 21l-4-4 4-4M3 17h12"/></svg></div>
+            <h3 class="card-title">Mechanical battery swap</h3>
+            <p>A mechanism exchanges the depleted pack for a charged one.</p>
+            <span class="todo badge badge-warning badge-soft todo-block">TODO: mechanism type and swap sequence</span>
+          </div>
         </article>
         <article class="card">
-          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg></div>
-          <h3>Pack recharging</h3>
-          <p>Used packs are recharged on the station for the next swap.</p>
-          <span class="todo todo-block">TODO: charging method and pack capacity</span>
+          <div class="card-body">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg></div>
+            <h3 class="card-title">Pack recharging</h3>
+            <p>Used packs are recharged on the station for the next swap.</p>
+            <span class="todo badge badge-warning badge-soft todo-block">TODO: charging method and pack capacity</span>
+          </div>
         </article>
         <article class="card">
-          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/></svg></div>
-          <h3>Monitoring</h3>
-          <p>Reports and tracks landing records, station status, and battery levels.</p>
+          <div class="card-body">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/></svg></div>
+            <h3 class="card-title">Monitoring</h3>
+            <p>Reports and tracks landing records, station status, and battery levels.</p>
+          </div>
         </article>
       </div>
     </div>
@@ -339,19 +1113,19 @@
       <p class="eyebrow">How it works</p>
       <h2>System architecture</h2>
       <p class="lead">The diagram below is a placeholder showing the subsystems implied by the project summary.</p>
-      <span class="todo todo-block">TODO: replace the placeholder diagram and confirm the subsystem breakdown</span>
+      <span class="todo badge badge-warning badge-soft todo-block">TODO: replace the placeholder diagram and confirm the subsystem breakdown</span>
       <figure class="diagram">
         <img src="assets/architecture.svg" width="960" height="440" alt="Placeholder architecture diagram: drone, landing pad, battery swap mechanism, and charging bay, all connected to a station controller." loading="lazy">
         <figcaption>Placeholder block diagram. Replace docs/assets/architecture.svg with the real architecture.</figcaption>
       </figure>
       <h3 class="subhead">Tech stack</h3>
       <div class="stack">
-        <div class="card"><h4>Controller</h4><span class="todo">TODO: MCU / single-board computer</span></div>
-        <div class="card"><h4>Firmware &amp; software</h4><span class="todo">TODO: languages, frameworks</span></div>
-        <div class="card"><h4>Swap mechanism</h4><span class="todo">TODO: motors, actuators, sensors</span></div>
-        <div class="card"><h4>Charging</h4><span class="todo">TODO: charger hardware, battery chemistry</span></div>
-        <div class="card"><h4>Drone platform</h4><span class="todo">TODO: airframe, flight controller</span></div>
-        <div class="card"><h4>Communication</h4><span class="todo">TODO: link between drone and station</span></div>
+        <div class="card"><div class="card-body"><h4>Controller</h4><span class="todo badge badge-warning badge-soft">TODO: MCU / single-board computer</span></div></div>
+        <div class="card"><div class="card-body"><h4>Firmware &amp; software</h4><span class="todo badge badge-warning badge-soft">TODO: languages, frameworks</span></div></div>
+        <div class="card"><div class="card-body"><h4>Swap mechanism</h4><span class="todo badge badge-warning badge-soft">TODO: motors, actuators, sensors</span></div></div>
+        <div class="card"><div class="card-body"><h4>Charging</h4><span class="todo badge badge-warning badge-soft">TODO: charger hardware, battery chemistry</span></div></div>
+        <div class="card"><div class="card-body"><h4>Drone platform</h4><span class="todo badge badge-warning badge-soft">TODO: airframe, flight controller</span></div></div>
+        <div class="card"><div class="card-body"><h4>Communication</h4><span class="todo badge badge-warning badge-soft">TODO: link between drone and station</span></div></div>
       </div>
     </div>
   </section>
@@ -362,17 +1136,17 @@
       <p class="eyebrow">Results</p>
       <h2>Testing &amp; outcomes</h2>
       <p class="lead">Measured results from testing will go here.</p>
-      <span class="todo todo-block">TODO: fill every metric below from real test data, and rename labels to match what you actually measured</span>
+      <span class="todo badge badge-warning badge-soft todo-block">TODO: fill every metric below from real test data, and rename labels to match what you actually measured</span>
       <div class="stats">
-        <div class="card stat"><div class="value">—</div><div class="label">Battery swap time</div></div>
-        <div class="card stat"><div class="value">—</div><div class="label">Landing success rate</div></div>
-        <div class="card stat"><div class="value">—</div><div class="label">Pack recharge time</div></div>
-        <div class="card stat"><div class="value">—</div><div class="label">Consecutive unattended cycles</div></div>
+        <div class="stat"><div class="stat-value">—</div><div class="stat-desc">Battery swap time</div></div>
+        <div class="stat"><div class="stat-value">—</div><div class="stat-desc">Landing success rate</div></div>
+        <div class="stat"><div class="stat-value">—</div><div class="stat-desc">Pack recharge time</div></div>
+        <div class="stat"><div class="stat-value">—</div><div class="stat-desc">Consecutive unattended cycles</div></div>
       </div>
       <ul class="checklist">
-        <li><span class="todo">TODO</span> Test outcome: describe the test and the result</li>
-        <li><span class="todo">TODO</span> Test outcome: describe the test and the result</li>
-        <li><span class="todo">TODO</span> Known limitations and future work</li>
+        <li><span class="todo badge badge-warning badge-soft">TODO</span> Test outcome: describe the test and the result</li>
+        <li><span class="todo badge badge-warning badge-soft">TODO</span> Test outcome: describe the test and the result</li>
+        <li><span class="todo badge badge-warning badge-soft">TODO</span> Known limitations and future work</li>
       </ul>
     </div>
   </section>
@@ -383,7 +1157,7 @@
       <p class="eyebrow">Team</p>
       <h2>Who built it</h2>
       <div class="team" id="teamGrid"></div>
-      <div class="card advisor"><strong>Advisor / sponsor:</strong> Ying Wang</div>
+      <div class="card advisor"><div class="card-body"><div><strong>Advisor / sponsor:</strong> Ying Wang</div></div></div>
     </div>
   </section>
 
@@ -394,14 +1168,16 @@
       <h2>Tell us what you think</h2>
       <p class="lead">We're gathering opinions on autonomous drone delivery to guide how we design Node.</p>
       <div class="card survey-cta">
-        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
-        <div>
-          <h3>“Node” Stations: making autonomous drone delivery better</h3>
-          <p>A short Google Form about how familiar you are with drone delivery, how far you think drones can fly, and what you'd value in longer-range delivery.</p>
-          <a class="btn primary" href="https://docs.google.com/forms/d/e/1FAIpQLSdJCWhLadw2iyHonVt8gh3D0rlWKvJNKewXjcfCh899FzywZw/viewform" target="_blank" rel="noopener">
-            Take the questionnaire
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg>
-          </a>
+        <div class="card-body">
+          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+          <div>
+            <h3 class="card-title">“Node” Stations: making autonomous drone delivery better</h3>
+            <p>A short Google Form about how familiar you are with drone delivery, how far you think drones can fly, and what you'd value in longer-range delivery.</p>
+            <a class="btn btn-primary" href="https://docs.google.com/forms/d/e/1FAIpQLSdJCWhLadw2iyHonVt8gh3D0rlWKvJNKewXjcfCh899FzywZw/viewform" target="_blank" rel="noopener">
+              Take the questionnaire
+              <svg class="arrow-ne" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg>
+            </a>
+          </div>
         </div>
       </div>
     </div>
@@ -421,7 +1197,7 @@
 <footer>
   <div class="wrap">
     <span>NodeStation · CPE 423 Senior Design · Stevens Institute of Technology · 2026–2027</span>
-    <span>Built with plain HTML, CSS &amp; JS</span>
+    <span>Built with plain HTML, CSS &amp; JS · styled with daisyUI</span>
   </div>
 </footer>
 
@@ -463,7 +1239,7 @@ const RESOURCES = [
     });
   };
   var isTodo = function (s) { return !s || /^TODO/i.test(s); };
-  var todo = function (label) { return '<span class="todo">' + esc(label) + "</span>"; };
+  var todo = function (label) { return '<span class="todo badge badge-warning badge-soft">' + esc(label) + "</span>"; };
 
   var ICONS = {
     doc: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/>',
@@ -480,22 +1256,34 @@ const RESOURCES = [
     return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICONS[name] + "</svg>";
   };
 
-  // Theme toggle: follows the OS until the visitor picks one, then remembers it.
+  // Theme toggle between daisyUI "winter" (light, the default) and "night" (dark). The visitor's choice is remembered.
   var root = document.documentElement;
-  var mq = window.matchMedia("(prefers-color-scheme: light)");
-  var current = function () { return root.getAttribute("data-theme") || (mq.matches ? "light" : "dark"); };
+  var schemeMeta = document.querySelector('meta[name="color-scheme"]');
+  var current = function () { return root.getAttribute("data-theme") === "night" ? "night" : "winter"; };
   var paintIcon = function () {
-    var dark = current() === "dark";
+    var dark = current() === "night";
     $("themeIcon").innerHTML = dark ? ICONS.sun : ICONS.moon;
     $("themeBtn").setAttribute("aria-label", dark ? "Switch to light theme" : "Switch to dark theme");
   };
-  $("themeBtn").addEventListener("click", function () {
-    var next = current() === "dark" ? "light" : "dark";
+  var applyTheme = function (next) {
     root.setAttribute("data-theme", next);
+    if (schemeMeta) schemeMeta.setAttribute("content", next === "night" ? "dark" : "light");
     try { localStorage.setItem("ns-theme", next); } catch (e) {}
     paintIcon();
+    var icon = $("themeIcon"); icon.classList.remove("spin"); void icon.getBoundingClientRect(); icon.classList.add("spin"); // reflow restarts the animation
+  };
+  $("themeBtn").addEventListener("click", function () {
+    var next = current() === "night" ? "winter" : "night";
+    var still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!document.startViewTransition || still) { applyTheme(next); return; }
+    // Reveal the new theme in a circle growing from the toggle button.
+    var r = this.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2;
+    var radius = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+    document.startViewTransition(function () { applyTheme(next); }).ready.then(function () {
+      root.animate({ clipPath: ["circle(0px at " + x + "px " + y + "px)", "circle(" + radius + "px at " + x + "px " + y + "px)"] },
+        { duration: 550, easing: "cubic-bezier(.4, 0, .2, 1)", pseudoElement: "::view-transition-new(root)" });
+    }).catch(function () {});
   });
-  if (mq.addEventListener) mq.addEventListener("change", paintIcon);
   paintIcon();
 
   // Hero: team names
@@ -507,6 +1295,7 @@ const RESOURCES = [
   // Hero: report button
   var report = RESOURCES.filter(function (r) { return r.icon === "doc"; })[0];
   if (!report || !report.ready) {
+    $("heroReport").classList.add("btn-disabled");
     $("heroReport").setAttribute("aria-disabled", "true");
     $("heroReport").setAttribute("tabindex", "-1");
     $("heroReport").insertAdjacentHTML("beforeend", " " + todo("TODO"));
@@ -534,45 +1323,104 @@ const RESOURCES = [
       }).join("")
     : [1, 2, 3].map(function () { return '<figure><div class="shot-ph">' + todo("TODO: screenshot or GIF") + "</div></figure>"; }).join("");
 
-  // Team cards
+  // Team cards (daisyUI card + avatar)
   var initials = function (n) {
     return isTodo(n) ? "?" : n.trim().split(/\s+/).map(function (p) { return p[0]; }).slice(0, 2).join("").toUpperCase();
   };
   $("teamGrid").innerHTML = TEAM.map(function (m) {
     var avatar = m.photo
-      ? '<img class="avatar" src="' + esc(m.photo) + '" alt="Photo of ' + esc(m.name) + '" width="112" height="112" loading="lazy">'
-      : '<div class="avatar" aria-hidden="true">' + esc(initials(m.name)) + "</div>";
+      ? '<div class="avatar"><div><img src="' + esc(m.photo) + '" alt="Photo of ' + esc(m.name) + '" width="96" height="96" loading="lazy"></div></div>'
+      : '<div class="avatar avatar-placeholder" aria-hidden="true"><div><span>' + esc(initials(m.name)) + "</span></div></div>";
     var links = [
-      m.linkedin ? '<a href="' + esc(m.linkedin) + '" target="_blank" rel="noopener" aria-label="' + esc(m.name) + ' on LinkedIn">' + svg("linkedin") + "</a>" : "",
-      m.github ? '<a href="' + esc(m.github) + '" target="_blank" rel="noopener" aria-label="' + esc(m.name) + ' on GitHub">' + svg("github") + "</a>" : ""
+      m.linkedin ? '<a class="btn btn-ghost btn-square btn-sm" href="' + esc(m.linkedin) + '" target="_blank" rel="noopener" aria-label="' + esc(m.name) + ' on LinkedIn">' + svg("linkedin") + "</a>" : "",
+      m.github ? '<a class="btn btn-ghost btn-square btn-sm" href="' + esc(m.github) + '" target="_blank" rel="noopener" aria-label="' + esc(m.name) + ' on GitHub">' + svg("github") + "</a>" : ""
     ].join("");
-    return '<article class="card member">' + avatar +
-      "<h3>" + (isTodo(m.name) ? todo(m.name || "TODO Name") : esc(m.name)) + "</h3>" +
+    return '<article class="card member"><div class="card-body">' + avatar +
+      '<h3 class="card-title">' + (isTodo(m.name) ? todo(m.name || "TODO Name") : esc(m.name)) + "</h3>" +
       '<p class="role">' + (isTodo(m.role) ? todo(m.role || "TODO Role") : esc(m.role)) + "</p>" +
       (links ? '<div class="socials">' + links + "</div>" : "") +
-      "</article>";
+      "</div></article>";
   }).join("");
 
   // Resources
   $("resourceList").innerHTML = RESOURCES.map(function (r) {
     var external = /^https?:/.test(r.href);
-    var inner = '<div class="icon">' + svg(r.icon) + "</div><div><strong>" + esc(r.title) + "</strong> " +
-      (r.ready ? "" : todo("TODO")) + "<small>" + esc(r.desc) + "</small></div>";
+    var inner = '<div class="card-body"><div class="icon">' + svg(r.icon) + "</div><div><strong>" + esc(r.title) + "</strong> " +
+      (r.ready ? "" : todo("TODO")) + "<small>" + esc(r.desc) + "</small></div></div>";
     return r.ready
       ? '<a class="card res" href="' + esc(r.href) + '"' + (external ? ' target="_blank" rel="noopener"' : "") + ">" + inner + "</a>"
       : '<div class="card res">' + inner + "</div>";
   }).join("");
 
-  // Highlight the nav link for the section in view
-  var navLinks = Array.prototype.slice.call(document.querySelectorAll(".nav ul a"));
+  // Highlight the nav link for the section in view (daisyUI menu styles aria-current as active)
+  var navLinks = Array.prototype.slice.call(document.querySelectorAll(".nav .menu a"));
   if ("IntersectionObserver" in window) {
     var io = new IntersectionObserver(function (entries) {
       entries.forEach(function (e) {
         if (!e.isIntersecting) return;
-        navLinks.forEach(function (a) { a.classList.toggle("active", a.getAttribute("href") === "#" + e.target.id); });
+        navLinks.forEach(function (a) {
+          if (a.getAttribute("href") === "#" + e.target.id) a.setAttribute("aria-current", "true");
+          else a.removeAttribute("aria-current");
+        });
       });
     }, { rootMargin: "-45% 0px -50% 0px" });
     Array.prototype.forEach.call(document.querySelectorAll("main section[id]"), function (s) { io.observe(s); });
+  }
+
+  /* ============================== Motion ============================== */
+  var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // Stat numbers count up once, when their panel scrolls into view. The final text is always restored exactly.
+  var countUp = function (scope) {
+    Array.prototype.forEach.call(scope.querySelectorAll(".stat-value"), function (el) {
+      var finalText = el.textContent, m = finalText.match(/^(\d+(?:\.\d+)?)(.*)$/);
+      if (!m) return;
+      var target = parseFloat(m[1]), rest = m[2], decimals = target < 10 ? 1 : 0, start = null, dur = 1400;
+      var frame = function (t) {
+        if (start === null) start = t;
+        var p = Math.min((t - start) / dur, 1), eased = 1 - Math.pow(1 - p, 3);
+        el.textContent = p < 1 ? (target * eased).toFixed(decimals) + rest : finalText;
+        if (p < 1) requestAnimationFrame(frame);
+      };
+      requestAnimationFrame(frame);
+    });
+  };
+
+  // Scroll reveal: fade content up as it enters the viewport, staggering siblings. Skipped entirely for reduced motion.
+  if (!reduceMotion && "IntersectionObserver" in window) {
+    var revealTargets = document.querySelectorAll([
+      "main > section:not(.hero-section) .eyebrow", "main > section:not(.hero-section) h2", ".lead", ".pull", ".subhead",
+      ".abstract", ".grid > *", ".stack > *", ".stats", ".checklist > li", ".video", ".gallery > *", ".diagram",
+      ".team > *", ".advisor", ".survey-cta", ".resources > *", "#results > .wrap > .todo", "#how > .wrap > .todo"
+    ].join(","));
+    var settle = function (el) { el.classList.remove("reveal", "in"); el.style.removeProperty("--d"); };
+    var revealer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        var el = e.target;
+        revealer.unobserve(el);
+        el.classList.add("in");
+        if (el.classList.contains("stats")) countUp(el);
+        // Drop the reveal classes once finished so hover effects and normal transitions take over.
+        var delay = parseFloat(el.style.getPropertyValue("--d")) || 0;
+        setTimeout(function () { settle(el); }, delay + 800);
+      });
+    }, { rootMargin: "0px 0px -8% 0px", threshold: 0.1 });
+    Array.prototype.forEach.call(revealTargets, function (el) {
+      var siblings = Array.prototype.filter.call(el.parentElement.children, function (c) { return c.tagName === el.tagName; });
+      var i = siblings.indexOf(el);
+      el.style.setProperty("--d", (el.parentElement.matches(".grid, .stack, .team, .resources, .gallery, .checklist") ? Math.min(i, 5) * 80 : 0) + "ms");
+      el.classList.add("reveal");
+      revealer.observe(el);
+    });
+  }
+
+  // Pause the hero illustration while it is scrolled out of view.
+  var heroVisual = document.querySelector(".hero-visual");
+  if (heroVisual && "IntersectionObserver" in window) {
+    new IntersectionObserver(function (entries) {
+      heroVisual.classList.toggle("paused", !entries[0].isIntersecting);
+    }).observe(heroVisual);
   }
 })();
 </script>
