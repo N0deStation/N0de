@@ -260,13 +260,20 @@
 
   /* 3D hero illustration (CSS 3D transforms, generated from one schedule; see the HTML comment in .hero-visual).
      Base styles are the static frame used with reduced motion: the drone on pad 1 with its charged pack installed,
-     the gantry parked over the rack, and the received pack charging in slot 2.
+     the arm parked over the rack, and the received pack charging in slot 2.
      Boxes are only moved with translate/rotate/visibility, never opacity, which would flatten their 3D faces. */
   @property --c { syntax: "<color>"; inherits: true; initial-value: #888; } /* lets pack colors animate as they charge */
+  /* Position offsets must not inherit: nested groups (shoulder > elbow > wrist > tool) each set only some of them */
+  @property --x { syntax: "<length>"; inherits: false; initial-value: 0px; }
+  @property --y { syntax: "<length>"; inherits: false; initial-value: 0px; }
+  @property --z { syntax: "<length>"; inherits: false; initial-value: 0px; }
+  @property --ry { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+  @property --rz { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
   .scene3d {
     --k: 1; --st: color-mix(in oklab, var(--text) 16%, var(--bg)); --frame: color-mix(in oklab, var(--text) 70%, var(--bg));
     --dark: color-mix(in oklab, var(--text) 80%, #000); --rack: color-mix(in oklab, var(--accent-2) 22%, var(--st));
     --metal: color-mix(in oklab, var(--text) 45%, var(--bg)); --canopy: color-mix(in oklab, var(--accent) 55%, #fff);
+    --arm: #e7ecf2; --arm-edge: #b8c2ce; --arm-joint: #7f8b9b; --grip: #1d2430; /* white/silver arm, dark gripper */
     position: relative; width: 100%; height: calc(360px * var(--k)); overflow: hidden;
   }
   .stage3d {
@@ -297,6 +304,13 @@
   .b3 > i:nth-child(5) { transform: rotateX(90deg) translateZ(calc(var(--h) / 2)); background: color-mix(in oklab, var(--c) 80%, #fff); }
   .b3 > i:nth-child(6) { transform: rotateX(-90deg) translateZ(calc(var(--h) / 2)); background: color-mix(in oklab, var(--c) 55%, #000); }
   .round > i { border-radius: 4px; }
+  .link3d > i:nth-child(1), .link3d > i:nth-child(2), .link3d > i:nth-child(5), .link3d > i:nth-child(6) { border-radius: 7px; }
+  /* Cylinder primitive (turret, base, joint hubs): side faces carry their own shading; .axis-z lays it along z */
+  .cyl > i { position: absolute; left: 0; top: 0; display: block; backface-visibility: hidden; }
+  .cyl > .cap { border-radius: 50%; background: color-mix(in oklab, var(--cc) 90%, #fff); }
+  .cyl > .cap.joint { background: radial-gradient(circle, var(--arm-joint) 0 28%, var(--arm-edge) 30% 36%, color-mix(in oklab, var(--cc) 92%, #fff) 38%); }
+  .axis-z { rotate: x 90deg; }
+  .arm-tool { rotate: z -90deg; } /* with the wrist pitch, turns the tool frame back upright */
   .deck3d > i:nth-child(5) { background: color-mix(in oklab, var(--accent) 14%, var(--bg)); } /* light deck surface, accent edges */
   /* Battery pack detail: a darker label band on the front, two contacts on top */
   .pack3d > i:nth-child(1) { background: linear-gradient(90deg, var(--c) 0 68%, color-mix(in oklab, var(--c) 55%, #000) 68% 88%, var(--c) 88%); }
@@ -312,10 +326,10 @@
   .flat { position: absolute; left: 0; top: 0; width: var(--fw); height: var(--fh); margin: calc(var(--fh) / -2) 0 0 calc(var(--fw) / -2);
     translate: var(--x, 0px) var(--y, 0px) var(--z, 0px); rotate: x 90deg; }
   .floor3d { --fw: 540px; --fh: 400px; --y: 61px; background: radial-gradient(closest-side, color-mix(in oklab, var(--text) 22%, transparent), transparent); }
-  .pad-ring { --fw: 96px; --fh: 96px; --y: -1px; --z: 40px; border-radius: 50%; border: 3px solid color-mix(in oklab, var(--accent) 70%, transparent);
+  .pad-ring { --fw: 96px; --fh: 96px; --y: -1px; --z: 50px; border-radius: 50%; border: 3px solid color-mix(in oklab, var(--accent) 70%, transparent);
     display: grid; place-items: center; font: 700 22px/1 var(--font-title); color: var(--accent); }
   .d3-shadow { --fw: 104px; --fh: 104px; border-radius: 50%; background: radial-gradient(closest-side, rgb(0 0 0 / .45), transparent); opacity: .5;
-    translate: -95px -2px 40px; }
+    translate: -95px -2px 50px; }
   .ping3d { --fw: 14px; --fh: 14px; --x: -132px; --y: -48px; --z: -80px; border-radius: 50%; border: 2px solid var(--accent); opacity: 0; }
   .rotor3d { --fw: 62px; --fh: 62px; --y: -47px; border-radius: 50%;
     background: radial-gradient(closest-side, color-mix(in oklab, var(--frame) 22%, transparent) 72%, color-mix(in oklab, var(--frame) 55%, transparent) 74%, transparent 78%); }
@@ -325,7 +339,7 @@
     background: radial-gradient(circle at 35% 35%, #bfe3ff, #0b1220 62%); translate: 0 -25px 34.6px; }
   .beam3d {
     position: absolute; left: 0; top: 0; width: 100px; height: 210px; margin: -210px 0 0 -50px; pointer-events: none; opacity: 0;
-    translate: -95px 0 40px; clip-path: polygon(38% 100%, 62% 100%, 100% 0, 0 0);
+    translate: -95px 0 50px; clip-path: polygon(38% 100%, 62% 100%, 100% 0, 0 0);
     background: linear-gradient(to top, color-mix(in oklab, var(--accent) 50%, transparent), transparent);
   }
   .beam3d-b { rotate: y 90deg; }
@@ -346,10 +360,11 @@
   .slot-bar-1 > b { transform: scaleX(0); } .slot-bar-2 > b { transform: scaleX(.55); }
 
   /* Static frame (reduced motion) */
-  .n3-drone { translate: -95px 0 40px; }
+  .n3-drone { translate: -95px 0 50px; }
   .n3-dbat-old, .n3-grip-old, .n3-grip-new, .n3-s1 { visibility: hidden; }
-  .n3-slide { translate: 0px 0 -50px; } /* the gantry sits on the belt */
-  .n3-trolley { translate: 0 0 -30px; }
+  .n3-slide { translate: 0px 0 -50px; } /* the arm's sled sits on the belt */
+  .n3-yaw { rotate: y 90deg; } .n3-roll { rotate: y -90deg; }
+  .n3-sh { rotate: z -121.92deg; } .n3-el { rotate: z 132.41deg; } .n3-wr { rotate: z 79.51deg; }
   .n3-jaw-l { translate: -5px 0 0; } .n3-jaw-r { translate: 5px 0 0; }
 
   /* The 24s loop: two visits, one per landing pad */
@@ -357,8 +372,11 @@
   .n3-dbat-old { animation: n3-dbat-old 24s linear infinite; }
   .n3-dbat-new { animation: n3-dbat-new 24s linear infinite; }
   .n3-slide  { animation: n3-slide 24s ease-in-out infinite; }
-  .n3-trolley { animation: n3-trolley 24s ease-in-out infinite; }
-  .n3-stem   { animation: n3-stem 24s ease-in-out infinite; }
+  .n3-yaw    { animation: n3-yaw 24s ease-in-out infinite; }
+  .n3-roll   { animation: n3-roll 24s ease-in-out infinite; }
+  .n3-sh     { animation: n3-sh 24s ease-in-out infinite; }
+  .n3-el     { animation: n3-el 24s ease-in-out infinite; }
+  .n3-wr     { animation: n3-wr 24s ease-in-out infinite; }
   .n3-jaw-l  { animation: n3-jaw-l 24s ease-in-out infinite; }
   .n3-jaw-r  { animation: n3-jaw-r 24s ease-in-out infinite; }
   .n3-grip-old { animation: n3-grip-old 24s linear infinite; }
@@ -380,14 +398,14 @@
   @keyframes d3-spin { to { rotate: 360deg; } }
   @keyframes d3-ping { 0% { scale: 1; opacity: .8; } 100% { scale: 4; opacity: 0; } }
   @keyframes n3-drone {
-    0% { translate: -95px -300px 40px; }
-    9% { translate: -95px 0px 40px; }
-    39% { translate: -95px 0px 40px; }
-    49.9% { translate: -95px -300px 40px; }
-    50% { translate: 95px -300px 40px; }
-    59% { translate: 95px 0px 40px; }
-    89% { translate: 95px 0px 40px; }
-    100% { translate: 95px -300px 40px; }
+    0% { translate: -95px -300px 50px; }
+    9% { translate: -95px 0px 50px; }
+    39% { translate: -95px 0px 50px; }
+    49.9% { translate: -95px -300px 50px; }
+    50% { translate: 95px -300px 50px; }
+    59% { translate: 95px 0px 50px; }
+    89% { translate: 95px 0px 50px; }
+    100% { translate: 95px -300px 50px; }
   }
   @keyframes n3-dbat-old {
     0% { visibility: visible; }
@@ -413,91 +431,253 @@
     0% { translate: 0px 0 -50px; }
     9% { translate: 0px 0 -50px; }
     12% { translate: -95px 0 -50px; }
+    14% { translate: -95px 0 -50px; }
+    15% { translate: -95px 0 -50px; }
     17% { translate: -95px 0 -50px; }
     20.5% { translate: 28px 0 -50px; }
+    22.5% { translate: 28px 0 -50px; }
+    23% { translate: 28px 0 -50px; }
     24.5% { translate: 28px 0 -50px; }
     26.5% { translate: -28px 0 -50px; }
+    28.5% { translate: -28px 0 -50px; }
+    29% { translate: -28px 0 -50px; }
     30.5% { translate: -28px 0 -50px; }
     34% { translate: -95px 0 -50px; }
+    36% { translate: -95px 0 -50px; }
+    36.5% { translate: -95px 0 -50px; }
     38% { translate: -95px 0 -50px; }
     42% { translate: 0px 0 -50px; }
     49.9% { translate: 0px 0 -50px; }
     50% { translate: 0px 0 -50px; }
     59% { translate: 0px 0 -50px; }
     62% { translate: 95px 0 -50px; }
+    64% { translate: 95px 0 -50px; }
+    65% { translate: 95px 0 -50px; }
     67% { translate: 95px 0 -50px; }
     70.5% { translate: -28px 0 -50px; }
+    72.5% { translate: -28px 0 -50px; }
+    73% { translate: -28px 0 -50px; }
     74.5% { translate: -28px 0 -50px; }
     76.5% { translate: 28px 0 -50px; }
+    78.5% { translate: 28px 0 -50px; }
+    79% { translate: 28px 0 -50px; }
     80.5% { translate: 28px 0 -50px; }
     84% { translate: 95px 0 -50px; }
+    86% { translate: 95px 0 -50px; }
+    86.5% { translate: 95px 0 -50px; }
     88% { translate: 95px 0 -50px; }
     92% { translate: 0px 0 -50px; }
     100% { translate: 0px 0 -50px; }
   }
-  @keyframes n3-trolley {
-    0% { translate: 0 0 -30px; }
-    9% { translate: 0 0 -30px; }
-    12% { translate: 0 0 90px; }
-    17% { translate: 0 0 90px; }
-    20.5% { translate: 0 0 -30px; }
-    24.5% { translate: 0 0 -30px; }
-    26.5% { translate: 0 0 -30px; }
-    30.5% { translate: 0 0 -30px; }
-    34% { translate: 0 0 90px; }
-    38% { translate: 0 0 90px; }
-    42% { translate: 0 0 -30px; }
-    49.9% { translate: 0 0 -30px; }
-    50% { translate: 0 0 -30px; }
-    59% { translate: 0 0 -30px; }
-    62% { translate: 0 0 90px; }
-    67% { translate: 0 0 90px; }
-    70.5% { translate: 0 0 -30px; }
-    74.5% { translate: 0 0 -30px; }
-    76.5% { translate: 0 0 -30px; }
-    80.5% { translate: 0 0 -30px; }
-    84% { translate: 0 0 90px; }
-    88% { translate: 0 0 90px; }
-    92% { translate: 0 0 -30px; }
-    100% { translate: 0 0 -30px; }
+  @keyframes n3-yaw {
+    0% { rotate: y 90deg; }
+    9% { rotate: y 90deg; }
+    12% { rotate: y -90deg; }
+    14% { rotate: y -90deg; }
+    15% { rotate: y -90deg; }
+    17% { rotate: y -90deg; }
+    20.5% { rotate: y 90deg; }
+    22.5% { rotate: y 90deg; }
+    23% { rotate: y 90deg; }
+    24.5% { rotate: y 90deg; }
+    26.5% { rotate: y 90deg; }
+    28.5% { rotate: y 90deg; }
+    29% { rotate: y 90deg; }
+    30.5% { rotate: y 90deg; }
+    34% { rotate: y -90deg; }
+    36% { rotate: y -90deg; }
+    36.5% { rotate: y -90deg; }
+    38% { rotate: y -90deg; }
+    42% { rotate: y 90deg; }
+    49.9% { rotate: y 90deg; }
+    50% { rotate: y 90deg; }
+    59% { rotate: y 90deg; }
+    62% { rotate: y -90deg; }
+    64% { rotate: y -90deg; }
+    65% { rotate: y -90deg; }
+    67% { rotate: y -90deg; }
+    70.5% { rotate: y 90deg; }
+    72.5% { rotate: y 90deg; }
+    73% { rotate: y 90deg; }
+    74.5% { rotate: y 90deg; }
+    76.5% { rotate: y 90deg; }
+    78.5% { rotate: y 90deg; }
+    79% { rotate: y 90deg; }
+    80.5% { rotate: y 90deg; }
+    84% { rotate: y -90deg; }
+    86% { rotate: y -90deg; }
+    86.5% { rotate: y -90deg; }
+    88% { rotate: y -90deg; }
+    92% { rotate: y 90deg; }
+    100% { rotate: y 90deg; }
   }
-  @keyframes n3-stem {
-    0% { translate: 0 0px 0; }
-    12% { translate: 0 0px 0; }
-    14% { translate: 0 27px 0; }
-    15% { translate: 0 27px 0; }
-    17% { translate: 0 0px 0; }
-    20.5% { translate: 0 0px 0; }
-    22.5% { translate: 0 53px 0; }
-    23% { translate: 0 53px 0; }
-    24.5% { translate: 0 0px 0; }
-    26.5% { translate: 0 0px 0; }
-    28.5% { translate: 0 53px 0; }
-    29% { translate: 0 53px 0; }
-    30.5% { translate: 0 0px 0; }
-    34% { translate: 0 0px 0; }
-    36% { translate: 0 27px 0; }
-    36.5% { translate: 0 27px 0; }
-    38% { translate: 0 0px 0; }
-    49.9% { translate: 0 0px 0; }
-    50% { translate: 0 0px 0; }
-    62% { translate: 0 0px 0; }
-    64% { translate: 0 27px 0; }
-    65% { translate: 0 27px 0; }
-    67% { translate: 0 0px 0; }
-    70.5% { translate: 0 0px 0; }
-    72.5% { translate: 0 53px 0; }
-    73% { translate: 0 53px 0; }
-    74.5% { translate: 0 0px 0; }
-    76.5% { translate: 0 0px 0; }
-    78.5% { translate: 0 53px 0; }
-    79% { translate: 0 53px 0; }
-    80.5% { translate: 0 0px 0; }
-    84% { translate: 0 0px 0; }
-    86% { translate: 0 27px 0; }
-    86.5% { translate: 0 27px 0; }
-    88% { translate: 0 0px 0; }
-    100% { translate: 0 0px 0; }
+  @keyframes n3-roll {
+    0% { rotate: y -90deg; }
+    9% { rotate: y -90deg; }
+    12% { rotate: y 90deg; }
+    14% { rotate: y 90deg; }
+    15% { rotate: y 90deg; }
+    17% { rotate: y 90deg; }
+    20.5% { rotate: y -90deg; }
+    22.5% { rotate: y -90deg; }
+    23% { rotate: y -90deg; }
+    24.5% { rotate: y -90deg; }
+    26.5% { rotate: y -90deg; }
+    28.5% { rotate: y -90deg; }
+    29% { rotate: y -90deg; }
+    30.5% { rotate: y -90deg; }
+    34% { rotate: y 90deg; }
+    36% { rotate: y 90deg; }
+    36.5% { rotate: y 90deg; }
+    38% { rotate: y 90deg; }
+    42% { rotate: y -90deg; }
+    49.9% { rotate: y -90deg; }
+    50% { rotate: y -90deg; }
+    59% { rotate: y -90deg; }
+    62% { rotate: y 90deg; }
+    64% { rotate: y 90deg; }
+    65% { rotate: y 90deg; }
+    67% { rotate: y 90deg; }
+    70.5% { rotate: y -90deg; }
+    72.5% { rotate: y -90deg; }
+    73% { rotate: y -90deg; }
+    74.5% { rotate: y -90deg; }
+    76.5% { rotate: y -90deg; }
+    78.5% { rotate: y -90deg; }
+    79% { rotate: y -90deg; }
+    80.5% { rotate: y -90deg; }
+    84% { rotate: y 90deg; }
+    86% { rotate: y 90deg; }
+    86.5% { rotate: y 90deg; }
+    88% { rotate: y 90deg; }
+    92% { rotate: y -90deg; }
+    100% { rotate: y -90deg; }
+  }
+  @keyframes n3-sh {
+    0% { rotate: z -121.92deg; }
+    9% { rotate: z -121.92deg; }
+    12% { rotate: z -58.24deg; }
+    14% { rotate: z -56.17deg; }
+    15% { rotate: z -56.17deg; }
+    17% { rotate: z -58.24deg; }
+    20.5% { rotate: z -121.92deg; }
+    22.5% { rotate: z -94.57deg; }
+    23% { rotate: z -94.57deg; }
+    24.5% { rotate: z -121.92deg; }
+    26.5% { rotate: z -121.92deg; }
+    28.5% { rotate: z -94.57deg; }
+    29% { rotate: z -94.57deg; }
+    30.5% { rotate: z -121.92deg; }
+    34% { rotate: z -58.24deg; }
+    36% { rotate: z -56.17deg; }
+    36.5% { rotate: z -56.17deg; }
+    38% { rotate: z -58.24deg; }
+    42% { rotate: z -121.92deg; }
+    49.9% { rotate: z -121.92deg; }
+    50% { rotate: z -121.92deg; }
+    59% { rotate: z -121.92deg; }
+    62% { rotate: z -58.24deg; }
+    64% { rotate: z -56.17deg; }
+    65% { rotate: z -56.17deg; }
+    67% { rotate: z -58.24deg; }
+    70.5% { rotate: z -121.92deg; }
+    72.5% { rotate: z -94.57deg; }
+    73% { rotate: z -94.57deg; }
+    74.5% { rotate: z -121.92deg; }
+    76.5% { rotate: z -121.92deg; }
+    78.5% { rotate: z -94.57deg; }
+    79% { rotate: z -94.57deg; }
+    80.5% { rotate: z -121.92deg; }
+    84% { rotate: z -58.24deg; }
+    86% { rotate: z -56.17deg; }
+    86.5% { rotate: z -56.17deg; }
+    88% { rotate: z -58.24deg; }
+    92% { rotate: z -121.92deg; }
+    100% { rotate: z -121.92deg; }
+  }
+  @keyframes n3-el {
+    0% { rotate: z 132.41deg; }
+    9% { rotate: z 132.41deg; }
+    12% { rotate: z 49.62deg; }
+    14% { rotate: z 72.75deg; }
+    15% { rotate: z 72.75deg; }
+    17% { rotate: z 49.62deg; }
+    20.5% { rotate: z 132.41deg; }
+    22.5% { rotate: z 152.28deg; }
+    23% { rotate: z 152.28deg; }
+    24.5% { rotate: z 132.41deg; }
+    26.5% { rotate: z 132.41deg; }
+    28.5% { rotate: z 152.28deg; }
+    29% { rotate: z 152.28deg; }
+    30.5% { rotate: z 132.41deg; }
+    34% { rotate: z 49.62deg; }
+    36% { rotate: z 72.75deg; }
+    36.5% { rotate: z 72.75deg; }
+    38% { rotate: z 49.62deg; }
+    42% { rotate: z 132.41deg; }
+    49.9% { rotate: z 132.41deg; }
+    50% { rotate: z 132.41deg; }
+    59% { rotate: z 132.41deg; }
+    62% { rotate: z 49.62deg; }
+    64% { rotate: z 72.75deg; }
+    65% { rotate: z 72.75deg; }
+    67% { rotate: z 49.62deg; }
+    70.5% { rotate: z 132.41deg; }
+    72.5% { rotate: z 152.28deg; }
+    73% { rotate: z 152.28deg; }
+    74.5% { rotate: z 132.41deg; }
+    76.5% { rotate: z 132.41deg; }
+    78.5% { rotate: z 152.28deg; }
+    79% { rotate: z 152.28deg; }
+    80.5% { rotate: z 132.41deg; }
+    84% { rotate: z 49.62deg; }
+    86% { rotate: z 72.75deg; }
+    86.5% { rotate: z 72.75deg; }
+    88% { rotate: z 49.62deg; }
+    92% { rotate: z 132.41deg; }
+    100% { rotate: z 132.41deg; }
+  }
+  @keyframes n3-wr {
+    0% { rotate: z 79.51deg; }
+    9% { rotate: z 79.51deg; }
+    12% { rotate: z 98.62deg; }
+    14% { rotate: z 73.42deg; }
+    15% { rotate: z 73.42deg; }
+    17% { rotate: z 98.62deg; }
+    20.5% { rotate: z 79.51deg; }
+    22.5% { rotate: z 32.29deg; }
+    23% { rotate: z 32.29deg; }
+    24.5% { rotate: z 79.51deg; }
+    26.5% { rotate: z 79.51deg; }
+    28.5% { rotate: z 32.29deg; }
+    29% { rotate: z 32.29deg; }
+    30.5% { rotate: z 79.51deg; }
+    34% { rotate: z 98.62deg; }
+    36% { rotate: z 73.42deg; }
+    36.5% { rotate: z 73.42deg; }
+    38% { rotate: z 98.62deg; }
+    42% { rotate: z 79.51deg; }
+    49.9% { rotate: z 79.51deg; }
+    50% { rotate: z 79.51deg; }
+    59% { rotate: z 79.51deg; }
+    62% { rotate: z 98.62deg; }
+    64% { rotate: z 73.42deg; }
+    65% { rotate: z 73.42deg; }
+    67% { rotate: z 98.62deg; }
+    70.5% { rotate: z 79.51deg; }
+    72.5% { rotate: z 32.29deg; }
+    73% { rotate: z 32.29deg; }
+    74.5% { rotate: z 79.51deg; }
+    76.5% { rotate: z 79.51deg; }
+    78.5% { rotate: z 32.29deg; }
+    79% { rotate: z 32.29deg; }
+    80.5% { rotate: z 79.51deg; }
+    84% { rotate: z 98.62deg; }
+    86% { rotate: z 73.42deg; }
+    86.5% { rotate: z 73.42deg; }
+    88% { rotate: z 98.62deg; }
+    92% { rotate: z 79.51deg; }
+    100% { rotate: z 79.51deg; }
   }
   @keyframes n3-jaw-l {
     0% { translate: -5px 0 0; }
@@ -708,10 +888,10 @@
     100% { opacity: 0; }
   }
   @keyframes n3-beam-pos {
-    0% { translate: -95px 0 40px; }
-    49.9% { translate: -95px 0 40px; }
-    50% { translate: 95px 0 40px; }
-    100% { translate: 95px 0 40px; }
+    0% { translate: -95px 0 50px; }
+    49.9% { translate: -95px 0 50px; }
+    50% { translate: 95px 0 50px; }
+    100% { translate: 95px 0 50px; }
   }
   @keyframes n3-shadow {
     0% { opacity: 0; }
@@ -734,10 +914,10 @@
     100% { scale: 0.25; }
   }
   @keyframes n3-shadow-pos {
-    0% { translate: -95px -2px 40px; }
-    49.9% { translate: -95px -2px 40px; }
-    50% { translate: 95px -2px 40px; }
-    100% { translate: 95px -2px 40px; }
+    0% { translate: -95px -2px 50px; }
+    49.9% { translate: -95px -2px 50px; }
+    50% { translate: 95px -2px 50px; }
+    100% { translate: 95px -2px 50px; }
   }
   @keyframes n3-step-land {
     0% { background: var(--bg); color: var(--muted); border-color: var(--line); }
@@ -909,8 +1089,8 @@
       </div>
       <div class="hero-visual">
         <!-- 3D illustration built from CSS 3D boxes (no WebGL or libraries). Generated from one schedule, 24s loop, two visits.
-             The station has two landing pads, a charging rack with two slots, and a gantry arm that rides a horizontal belt:
-             a drone lands on pad 1 guided by a sensor beam; the arm slides over, lifts the depleted pack off the drone, sets it
+             The station has two landing pads, a charging rack with two slots, and an articulated robotic arm on a sled that rides
+             a horizontal belt: a drone lands on pad 1 guided by a sensor beam; the arm slides over, lifts the depleted pack off the drone, sets it
              in the empty rack slot, picks up the charged pack from the other slot and installs it in the drone. Only once the
              swap is complete does the received pack start charging, while the drone relaunches. The second visit uses pad 2
              and the other slot, which returns the rack to its starting state.
@@ -921,8 +1101,8 @@
               <div class="flat floor3d"></div>
 
               <!-- station body with status panel, landing deck, pads -->
-              <div class="b3" style="--w:280px;--h:50px;--d:170px;--x:0px;--y:35px;--z:0px;--c:var(--st)"><i><span class="bay3d"><span class="bat-icon"><span class="bat-fill"></span></span><span class="bay-labels"><b class="lbl lbl-ready">Ready</b><b class="lbl lbl-swap">Swapping</b><b class="lbl lbl-charge">Charging</b></span><span class="led3d"></span></span></i><i></i><i></i><i></i><i></i><i></i></div>
-              <div class="b3 deck3d" style="--w:300px;--h:10px;--d:190px;--x:0px;--y:5px;--z:0px;--c:var(--accent)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+              <div class="b3" style="--w:280px;--h:50px;--d:180px;--x:0px;--y:35px;--z:0px;--c:var(--st)"><i><span class="bay3d"><span class="bat-icon"><span class="bat-fill"></span></span><span class="bay-labels"><b class="lbl lbl-ready">Ready</b><b class="lbl lbl-swap">Swapping</b><b class="lbl lbl-charge">Charging</b></span><span class="led3d"></span></span></i><i></i><i></i><i></i><i></i><i></i></div>
+              <div class="b3 deck3d" style="--w:300px;--h:10px;--d:200px;--x:0px;--y:5px;--z:0px;--c:var(--accent)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
               <div class="flat pad-ring" style="--x:-95px">1</div>
               <div class="flat pad-ring" style="--x:95px">2</div>
               <div class="flat d3-shadow"></div>
@@ -948,32 +1128,36 @@
               <div class="beam3d"></div>
               <div class="beam3d beam3d-b"></div>
 
-              <!-- robotic arm: gantry riding the belt (x), trolley on the boom (z), telescoping stem and gripper (y) -->
+              <!-- robotic arm: articulated arm on a sled riding the belt (x); turret, shoulder, elbow, wrist, gripper -->
               <div class="g3 n3-slide">
                 <div class="b3 round" style="--w:40px;--h:8px;--d:26px;--x:0px;--y:-12px;--z:0px;--c:var(--accent)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
                 <div class="b3" style="--w:12px;--h:12px;--d:14px;--x:24px;--y:-13px;--z:0px;--c:var(--dark)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
-                <div class="b3" style="--w:14px;--h:118px;--d:14px;--x:0px;--y:-75px;--z:0px;--c:var(--metal)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
-                <div class="b3" style="--w:20px;--h:6px;--d:20px;--x:0px;--y:-19px;--z:0px;--c:var(--frame)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
-                <div class="g3" style="--y:-138px">
-                  <div class="b3 round" style="--w:24px;--h:14px;--d:24px;--x:0px;--y:0px;--z:0px;--c:var(--accent)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
-                  <div class="b3" style="--w:5px;--h:6px;--d:150px;--x:8px;--y:0px;--z:32px;--c:var(--accent-2)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
-                  <div class="b3" style="--w:5px;--h:6px;--d:150px;--x:-8px;--y:0px;--z:32px;--c:var(--accent-2)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
-                  <div class="b3" style="--w:12px;--h:3px;--d:4px;--x:0px;--y:-2px;--z:-25px;--c:var(--accent-2)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
-                  <div class="b3" style="--w:12px;--h:3px;--d:4px;--x:0px;--y:-2px;--z:5px;--c:var(--accent-2)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
-                  <div class="b3" style="--w:12px;--h:3px;--d:4px;--x:0px;--y:-2px;--z:59px;--c:var(--accent-2)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
-                  <div class="b3" style="--w:12px;--h:3px;--d:4px;--x:0px;--y:-2px;--z:89px;--c:var(--accent-2)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
-                  <div class="b3" style="--w:26px;--h:12px;--d:8px;--x:0px;--y:0px;--z:-45px;--c:var(--dark)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
-                  <div class="b3" style="--w:26px;--h:12px;--d:8px;--x:0px;--y:0px;--z:109px;--c:var(--dark)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
-                  <div class="g3 n3-trolley">
-                    <div class="b3 round" style="--w:26px;--h:12px;--d:20px;--x:0px;--y:0px;--z:0px;--c:var(--accent)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
-                    <div class="b3" style="--w:9px;--h:34px;--d:9px;--x:0px;--y:23px;--z:0px;--c:var(--metal)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
-                    <div class="g3 n3-stem">
-                      <div class="b3" style="--w:5px;--h:70px;--d:5px;--x:0px;--y:15px;--z:0px;--c:var(--frame)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
-                      <div class="b3 round" style="--w:46px;--h:6px;--d:24px;--x:0px;--y:50px;--z:0px;--c:var(--dark)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
-                      <div class="g3 n3-jaw-l"><div class="b3" style="--w:3px;--h:12px;--d:22px;--x:-19.5px;--y:59px;--z:0px;--c:var(--dark)"><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
-                      <div class="g3 n3-jaw-r"><div class="b3" style="--w:3px;--h:12px;--d:22px;--x:19.5px;--y:59px;--z:0px;--c:var(--dark)"><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
-                      <div class="b3 pack3d n3-grip-old" style="--w:36px;--h:12px;--d:26px;--x:0px;--y:59px;--z:0px;--c:var(--color-error, #e5484d)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
-                      <div class="b3 pack3d n3-grip-new" style="--w:36px;--h:12px;--d:26px;--x:0px;--y:59px;--z:0px;--c:var(--color-success, #22a06b)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                <div class="g3 cyl" style="--x:0px;--y:-23px;--z:0px"><i style="width:5.97px;height:14px;margin:-7px 0 0 -2.985px;transform:rotateY(0deg) translateZ(12.75px);background:color-mix(in oklab, var(--arm) 96%, #000)"></i><i style="width:5.97px;height:14px;margin:-7px 0 0 -2.985px;transform:rotateY(22.5deg) translateZ(12.75px);background:color-mix(in oklab, var(--arm) 87%, #000)"></i><i style="width:5.97px;height:14px;margin:-7px 0 0 -2.985px;transform:rotateY(45deg) translateZ(12.75px);background:color-mix(in oklab, var(--arm) 74%, #000)"></i><i style="width:5.97px;height:14px;margin:-7px 0 0 -2.985px;transform:rotateY(67.5deg) translateZ(12.75px);background:color-mix(in oklab, var(--arm) 62%, #000)"></i><i style="width:5.97px;height:14px;margin:-7px 0 0 -2.985px;transform:rotateY(90deg) translateZ(12.75px);background:color-mix(in oklab, var(--arm) 62%, #000)"></i><i style="width:5.97px;height:14px;margin:-7px 0 0 -2.985px;transform:rotateY(112.5deg) translateZ(12.75px);background:color-mix(in oklab, var(--arm) 62%, #000)"></i><i style="width:5.97px;height:14px;margin:-7px 0 0 -2.985px;transform:rotateY(135deg) translateZ(12.75px);background:color-mix(in oklab, var(--arm) 62%, #000)"></i><i style="width:5.97px;height:14px;margin:-7px 0 0 -2.985px;transform:rotateY(157.5deg) translateZ(12.75px);background:color-mix(in oklab, var(--arm) 62%, #000)"></i><i style="width:5.97px;height:14px;margin:-7px 0 0 -2.985px;transform:rotateY(180deg) translateZ(12.75px);background:color-mix(in oklab, var(--arm) 62%, #000)"></i><i style="width:5.97px;height:14px;margin:-7px 0 0 -2.985px;transform:rotateY(202.5deg) translateZ(12.75px);background:color-mix(in oklab, var(--arm) 62%, #000)"></i><i style="width:5.97px;height:14px;margin:-7px 0 0 -2.985px;transform:rotateY(225deg) translateZ(12.75px);background:color-mix(in oklab, var(--arm) 62%, #000)"></i><i style="width:5.97px;height:14px;margin:-7px 0 0 -2.985px;transform:rotateY(247.5deg) translateZ(12.75px);background:color-mix(in oklab, var(--arm) 65%, #000)"></i><i style="width:5.97px;height:14px;margin:-7px 0 0 -2.985px;transform:rotateY(270deg) translateZ(12.75px);background:color-mix(in oklab, var(--arm) 79%, #000)"></i><i style="width:5.97px;height:14px;margin:-7px 0 0 -2.985px;transform:rotateY(292.5deg) translateZ(12.75px);background:color-mix(in oklab, var(--arm) 91%, #000)"></i><i style="width:5.97px;height:14px;margin:-7px 0 0 -2.985px;transform:rotateY(315deg) translateZ(12.75px);background:color-mix(in oklab, var(--arm) 98%, #000)"></i><i style="width:5.97px;height:14px;margin:-7px 0 0 -2.985px;transform:rotateY(337.5deg) translateZ(12.75px);background:color-mix(in oklab, var(--arm) 100%, #000)"></i><i class="cap" style="width:26px;height:26px;margin:-13px 0 0 -13px;transform:rotateX(90deg) translateZ(7px);--cc:var(--arm)"></i><i class="cap" style="width:26px;height:26px;margin:-13px 0 0 -13px;transform:rotateX(-90deg) translateZ(7px);--cc:var(--arm)"></i></div>
+                <div class="g3 cyl" style="--x:0px;--y:-18px;--z:0px"><i style="width:6.29px;height:3px;margin:-1.5px 0 0 -3.145px;transform:rotateY(0deg) translateZ(13.53px);background:color-mix(in oklab, var(--accent) 96%, #000)"></i><i style="width:6.29px;height:3px;margin:-1.5px 0 0 -3.145px;transform:rotateY(22.5deg) translateZ(13.53px);background:color-mix(in oklab, var(--accent) 87%, #000)"></i><i style="width:6.29px;height:3px;margin:-1.5px 0 0 -3.145px;transform:rotateY(45deg) translateZ(13.53px);background:color-mix(in oklab, var(--accent) 74%, #000)"></i><i style="width:6.29px;height:3px;margin:-1.5px 0 0 -3.145px;transform:rotateY(67.5deg) translateZ(13.53px);background:color-mix(in oklab, var(--accent) 62%, #000)"></i><i style="width:6.29px;height:3px;margin:-1.5px 0 0 -3.145px;transform:rotateY(90deg) translateZ(13.53px);background:color-mix(in oklab, var(--accent) 62%, #000)"></i><i style="width:6.29px;height:3px;margin:-1.5px 0 0 -3.145px;transform:rotateY(112.5deg) translateZ(13.53px);background:color-mix(in oklab, var(--accent) 62%, #000)"></i><i style="width:6.29px;height:3px;margin:-1.5px 0 0 -3.145px;transform:rotateY(135deg) translateZ(13.53px);background:color-mix(in oklab, var(--accent) 62%, #000)"></i><i style="width:6.29px;height:3px;margin:-1.5px 0 0 -3.145px;transform:rotateY(157.5deg) translateZ(13.53px);background:color-mix(in oklab, var(--accent) 62%, #000)"></i><i style="width:6.29px;height:3px;margin:-1.5px 0 0 -3.145px;transform:rotateY(180deg) translateZ(13.53px);background:color-mix(in oklab, var(--accent) 62%, #000)"></i><i style="width:6.29px;height:3px;margin:-1.5px 0 0 -3.145px;transform:rotateY(202.5deg) translateZ(13.53px);background:color-mix(in oklab, var(--accent) 62%, #000)"></i><i style="width:6.29px;height:3px;margin:-1.5px 0 0 -3.145px;transform:rotateY(225deg) translateZ(13.53px);background:color-mix(in oklab, var(--accent) 62%, #000)"></i><i style="width:6.29px;height:3px;margin:-1.5px 0 0 -3.145px;transform:rotateY(247.5deg) translateZ(13.53px);background:color-mix(in oklab, var(--accent) 65%, #000)"></i><i style="width:6.29px;height:3px;margin:-1.5px 0 0 -3.145px;transform:rotateY(270deg) translateZ(13.53px);background:color-mix(in oklab, var(--accent) 79%, #000)"></i><i style="width:6.29px;height:3px;margin:-1.5px 0 0 -3.145px;transform:rotateY(292.5deg) translateZ(13.53px);background:color-mix(in oklab, var(--accent) 91%, #000)"></i><i style="width:6.29px;height:3px;margin:-1.5px 0 0 -3.145px;transform:rotateY(315deg) translateZ(13.53px);background:color-mix(in oklab, var(--accent) 98%, #000)"></i><i style="width:6.29px;height:3px;margin:-1.5px 0 0 -3.145px;transform:rotateY(337.5deg) translateZ(13.53px);background:color-mix(in oklab, var(--accent) 100%, #000)"></i><i class="cap" style="width:27.6px;height:27.6px;margin:-13.8px 0 0 -13.8px;transform:rotateX(90deg) translateZ(1.5px);--cc:var(--accent)"></i><i class="cap" style="width:27.6px;height:27.6px;margin:-13.8px 0 0 -13.8px;transform:rotateX(-90deg) translateZ(1.5px);--cc:var(--accent)"></i></div>
+                <div class="g3 n3-yaw" style="--y:-30px">
+                  <div class="g3 cyl" style="--x:0px;--y:-4px;--z:0px"><i style="width:5.82px;height:8px;margin:-4px 0 0 -2.91px;transform:rotateY(0deg) translateZ(10.72px);background:color-mix(in oklab, var(--arm) 96%, #000)"></i><i style="width:5.82px;height:8px;margin:-4px 0 0 -2.91px;transform:rotateY(25.71deg) translateZ(10.72px);background:color-mix(in oklab, var(--arm) 85%, #000)"></i><i style="width:5.82px;height:8px;margin:-4px 0 0 -2.91px;transform:rotateY(51.43deg) translateZ(10.72px);background:color-mix(in oklab, var(--arm) 70%, #000)"></i><i style="width:5.82px;height:8px;margin:-4px 0 0 -2.91px;transform:rotateY(77.14deg) translateZ(10.72px);background:color-mix(in oklab, var(--arm) 62%, #000)"></i><i style="width:5.82px;height:8px;margin:-4px 0 0 -2.91px;transform:rotateY(102.86deg) translateZ(10.72px);background:color-mix(in oklab, var(--arm) 62%, #000)"></i><i style="width:5.82px;height:8px;margin:-4px 0 0 -2.91px;transform:rotateY(128.57deg) translateZ(10.72px);background:color-mix(in oklab, var(--arm) 62%, #000)"></i><i style="width:5.82px;height:8px;margin:-4px 0 0 -2.91px;transform:rotateY(154.29deg) translateZ(10.72px);background:color-mix(in oklab, var(--arm) 62%, #000)"></i><i style="width:5.82px;height:8px;margin:-4px 0 0 -2.91px;transform:rotateY(180deg) translateZ(10.72px);background:color-mix(in oklab, var(--arm) 62%, #000)"></i><i style="width:5.82px;height:8px;margin:-4px 0 0 -2.91px;transform:rotateY(205.71deg) translateZ(10.72px);background:color-mix(in oklab, var(--arm) 62%, #000)"></i><i style="width:5.82px;height:8px;margin:-4px 0 0 -2.91px;transform:rotateY(231.43deg) translateZ(10.72px);background:color-mix(in oklab, var(--arm) 62%, #000)"></i><i style="width:5.82px;height:8px;margin:-4px 0 0 -2.91px;transform:rotateY(257.14deg) translateZ(10.72px);background:color-mix(in oklab, var(--arm) 71%, #000)"></i><i style="width:5.82px;height:8px;margin:-4px 0 0 -2.91px;transform:rotateY(282.86deg) translateZ(10.72px);background:color-mix(in oklab, var(--arm) 86%, #000)"></i><i style="width:5.82px;height:8px;margin:-4px 0 0 -2.91px;transform:rotateY(308.57deg) translateZ(10.72px);background:color-mix(in oklab, var(--arm) 96%, #000)"></i><i style="width:5.82px;height:8px;margin:-4px 0 0 -2.91px;transform:rotateY(334.29deg) translateZ(10.72px);background:color-mix(in oklab, var(--arm) 100%, #000)"></i><i class="cap" style="width:22px;height:22px;margin:-11px 0 0 -11px;transform:rotateX(90deg) translateZ(4px);--cc:var(--arm)"></i><i class="cap" style="width:22px;height:22px;margin:-11px 0 0 -11px;transform:rotateX(-90deg) translateZ(4px);--cc:var(--arm)"></i></div>
+                  <div class="b3 round" style="--w:18px;--h:16px;--d:4px;--x:0px;--y:-12px;--z:11px;--c:var(--arm)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                  <div class="b3 round" style="--w:18px;--h:16px;--d:4px;--x:0px;--y:-12px;--z:-11px;--c:var(--arm)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                  <div class="g3 n3-sh" style="--y:-16px">
+                    <div class="g3 cyl axis-z" style="--x:0px;--y:0px;--z:0px"><i style="width:4.78px;height:18px;margin:-9px 0 0 -2.39px;transform:rotateY(0deg) translateZ(9.81px);background:color-mix(in oklab, var(--arm) 96%, #000)"></i><i style="width:4.78px;height:18px;margin:-9px 0 0 -2.39px;transform:rotateY(22.5deg) translateZ(9.81px);background:color-mix(in oklab, var(--arm) 87%, #000)"></i><i style="width:4.78px;height:18px;margin:-9px 0 0 -2.39px;transform:rotateY(45deg) translateZ(9.81px);background:color-mix(in oklab, var(--arm) 74%, #000)"></i><i style="width:4.78px;height:18px;margin:-9px 0 0 -2.39px;transform:rotateY(67.5deg) translateZ(9.81px);background:color-mix(in oklab, var(--arm) 62%, #000)"></i><i style="width:4.78px;height:18px;margin:-9px 0 0 -2.39px;transform:rotateY(90deg) translateZ(9.81px);background:color-mix(in oklab, var(--arm) 62%, #000)"></i><i style="width:4.78px;height:18px;margin:-9px 0 0 -2.39px;transform:rotateY(112.5deg) translateZ(9.81px);background:color-mix(in oklab, var(--arm) 62%, #000)"></i><i style="width:4.78px;height:18px;margin:-9px 0 0 -2.39px;transform:rotateY(135deg) translateZ(9.81px);background:color-mix(in oklab, var(--arm) 62%, #000)"></i><i style="width:4.78px;height:18px;margin:-9px 0 0 -2.39px;transform:rotateY(157.5deg) translateZ(9.81px);background:color-mix(in oklab, var(--arm) 62%, #000)"></i><i style="width:4.78px;height:18px;margin:-9px 0 0 -2.39px;transform:rotateY(180deg) translateZ(9.81px);background:color-mix(in oklab, var(--arm) 62%, #000)"></i><i style="width:4.78px;height:18px;margin:-9px 0 0 -2.39px;transform:rotateY(202.5deg) translateZ(9.81px);background:color-mix(in oklab, var(--arm) 62%, #000)"></i><i style="width:4.78px;height:18px;margin:-9px 0 0 -2.39px;transform:rotateY(225deg) translateZ(9.81px);background:color-mix(in oklab, var(--arm) 62%, #000)"></i><i style="width:4.78px;height:18px;margin:-9px 0 0 -2.39px;transform:rotateY(247.5deg) translateZ(9.81px);background:color-mix(in oklab, var(--arm) 65%, #000)"></i><i style="width:4.78px;height:18px;margin:-9px 0 0 -2.39px;transform:rotateY(270deg) translateZ(9.81px);background:color-mix(in oklab, var(--arm) 79%, #000)"></i><i style="width:4.78px;height:18px;margin:-9px 0 0 -2.39px;transform:rotateY(292.5deg) translateZ(9.81px);background:color-mix(in oklab, var(--arm) 91%, #000)"></i><i style="width:4.78px;height:18px;margin:-9px 0 0 -2.39px;transform:rotateY(315deg) translateZ(9.81px);background:color-mix(in oklab, var(--arm) 98%, #000)"></i><i style="width:4.78px;height:18px;margin:-9px 0 0 -2.39px;transform:rotateY(337.5deg) translateZ(9.81px);background:color-mix(in oklab, var(--arm) 100%, #000)"></i><i class="cap joint" style="width:20px;height:20px;margin:-10px 0 0 -10px;transform:rotateX(90deg) translateZ(9px);--cc:var(--arm)"></i><i class="cap joint" style="width:20px;height:20px;margin:-10px 0 0 -10px;transform:rotateX(-90deg) translateZ(9px);--cc:var(--arm)"></i></div>
+                    <div class="b3 link3d" style="--w:66px;--h:14px;--d:14px;--x:33px;--y:0px;--z:0px;--c:var(--arm)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                    <div class="g3 n3-el" style="--x:66px">
+                      <div class="g3 cyl axis-z" style="--x:0px;--y:0px;--z:0px"><i style="width:4.91px;height:18px;margin:-9px 0 0 -2.455px;transform:rotateY(0deg) translateZ(8.77px);background:color-mix(in oklab, var(--arm) 96%, #000)"></i><i style="width:4.91px;height:18px;margin:-9px 0 0 -2.455px;transform:rotateY(25.71deg) translateZ(8.77px);background:color-mix(in oklab, var(--arm) 85%, #000)"></i><i style="width:4.91px;height:18px;margin:-9px 0 0 -2.455px;transform:rotateY(51.43deg) translateZ(8.77px);background:color-mix(in oklab, var(--arm) 70%, #000)"></i><i style="width:4.91px;height:18px;margin:-9px 0 0 -2.455px;transform:rotateY(77.14deg) translateZ(8.77px);background:color-mix(in oklab, var(--arm) 62%, #000)"></i><i style="width:4.91px;height:18px;margin:-9px 0 0 -2.455px;transform:rotateY(102.86deg) translateZ(8.77px);background:color-mix(in oklab, var(--arm) 62%, #000)"></i><i style="width:4.91px;height:18px;margin:-9px 0 0 -2.455px;transform:rotateY(128.57deg) translateZ(8.77px);background:color-mix(in oklab, var(--arm) 62%, #000)"></i><i style="width:4.91px;height:18px;margin:-9px 0 0 -2.455px;transform:rotateY(154.29deg) translateZ(8.77px);background:color-mix(in oklab, var(--arm) 62%, #000)"></i><i style="width:4.91px;height:18px;margin:-9px 0 0 -2.455px;transform:rotateY(180deg) translateZ(8.77px);background:color-mix(in oklab, var(--arm) 62%, #000)"></i><i style="width:4.91px;height:18px;margin:-9px 0 0 -2.455px;transform:rotateY(205.71deg) translateZ(8.77px);background:color-mix(in oklab, var(--arm) 62%, #000)"></i><i style="width:4.91px;height:18px;margin:-9px 0 0 -2.455px;transform:rotateY(231.43deg) translateZ(8.77px);background:color-mix(in oklab, var(--arm) 62%, #000)"></i><i style="width:4.91px;height:18px;margin:-9px 0 0 -2.455px;transform:rotateY(257.14deg) translateZ(8.77px);background:color-mix(in oklab, var(--arm) 71%, #000)"></i><i style="width:4.91px;height:18px;margin:-9px 0 0 -2.455px;transform:rotateY(282.86deg) translateZ(8.77px);background:color-mix(in oklab, var(--arm) 86%, #000)"></i><i style="width:4.91px;height:18px;margin:-9px 0 0 -2.455px;transform:rotateY(308.57deg) translateZ(8.77px);background:color-mix(in oklab, var(--arm) 96%, #000)"></i><i style="width:4.91px;height:18px;margin:-9px 0 0 -2.455px;transform:rotateY(334.29deg) translateZ(8.77px);background:color-mix(in oklab, var(--arm) 100%, #000)"></i><i class="cap joint" style="width:18px;height:18px;margin:-9px 0 0 -9px;transform:rotateX(90deg) translateZ(9px);--cc:var(--arm)"></i><i class="cap joint" style="width:18px;height:18px;margin:-9px 0 0 -9px;transform:rotateX(-90deg) translateZ(9px);--cc:var(--arm)"></i></div>
+                      <div class="b3 link3d" style="--w:66px;--h:11px;--d:12px;--x:33px;--y:0px;--z:0px;--c:var(--arm)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                      <div class="g3 n3-wr" style="--x:66px">
+                        <div class="g3 cyl axis-z" style="--x:0px;--y:0px;--z:0px"><i style="width:4.55px;height:15px;margin:-7.5px 0 0 -2.275px;transform:rotateY(0deg) translateZ(6.76px);background:color-mix(in oklab, var(--arm) 96%, #000)"></i><i style="width:4.55px;height:15px;margin:-7.5px 0 0 -2.275px;transform:rotateY(30deg) translateZ(6.76px);background:color-mix(in oklab, var(--arm) 83%, #000)"></i><i style="width:4.55px;height:15px;margin:-7.5px 0 0 -2.275px;transform:rotateY(60deg) translateZ(6.76px);background:color-mix(in oklab, var(--arm) 64%, #000)"></i><i style="width:4.55px;height:15px;margin:-7.5px 0 0 -2.275px;transform:rotateY(90deg) translateZ(6.76px);background:color-mix(in oklab, var(--arm) 62%, #000)"></i><i style="width:4.55px;height:15px;margin:-7.5px 0 0 -2.275px;transform:rotateY(120deg) translateZ(6.76px);background:color-mix(in oklab, var(--arm) 62%, #000)"></i><i style="width:4.55px;height:15px;margin:-7.5px 0 0 -2.275px;transform:rotateY(150deg) translateZ(6.76px);background:color-mix(in oklab, var(--arm) 62%, #000)"></i><i style="width:4.55px;height:15px;margin:-7.5px 0 0 -2.275px;transform:rotateY(180deg) translateZ(6.76px);background:color-mix(in oklab, var(--arm) 62%, #000)"></i><i style="width:4.55px;height:15px;margin:-7.5px 0 0 -2.275px;transform:rotateY(210deg) translateZ(6.76px);background:color-mix(in oklab, var(--arm) 62%, #000)"></i><i style="width:4.55px;height:15px;margin:-7.5px 0 0 -2.275px;transform:rotateY(240deg) translateZ(6.76px);background:color-mix(in oklab, var(--arm) 62%, #000)"></i><i style="width:4.55px;height:15px;margin:-7.5px 0 0 -2.275px;transform:rotateY(270deg) translateZ(6.76px);background:color-mix(in oklab, var(--arm) 79%, #000)"></i><i style="width:4.55px;height:15px;margin:-7.5px 0 0 -2.275px;transform:rotateY(300deg) translateZ(6.76px);background:color-mix(in oklab, var(--arm) 94%, #000)"></i><i style="width:4.55px;height:15px;margin:-7.5px 0 0 -2.275px;transform:rotateY(330deg) translateZ(6.76px);background:color-mix(in oklab, var(--arm) 100%, #000)"></i><i class="cap joint" style="width:14px;height:14px;margin:-7px 0 0 -7px;transform:rotateX(90deg) translateZ(7.5px);--cc:var(--arm)"></i><i class="cap joint" style="width:14px;height:14px;margin:-7px 0 0 -7px;transform:rotateX(-90deg) translateZ(7.5px);--cc:var(--arm)"></i></div>
+                        <div class="g3 arm-tool" style="--x:30px">
+                          <div class="g3 n3-roll">
+                            <div class="g3 cyl" style="--x:0px;--y:-20px;--z:0px"><i style="width:4.02px;height:12px;margin:-6px 0 0 -2.01px;transform:rotateY(0deg) translateZ(5.8px);background:color-mix(in oklab, var(--arm) 96%, #000)"></i><i style="width:4.02px;height:12px;margin:-6px 0 0 -2.01px;transform:rotateY(30deg) translateZ(5.8px);background:color-mix(in oklab, var(--arm) 83%, #000)"></i><i style="width:4.02px;height:12px;margin:-6px 0 0 -2.01px;transform:rotateY(60deg) translateZ(5.8px);background:color-mix(in oklab, var(--arm) 64%, #000)"></i><i style="width:4.02px;height:12px;margin:-6px 0 0 -2.01px;transform:rotateY(90deg) translateZ(5.8px);background:color-mix(in oklab, var(--arm) 62%, #000)"></i><i style="width:4.02px;height:12px;margin:-6px 0 0 -2.01px;transform:rotateY(120deg) translateZ(5.8px);background:color-mix(in oklab, var(--arm) 62%, #000)"></i><i style="width:4.02px;height:12px;margin:-6px 0 0 -2.01px;transform:rotateY(150deg) translateZ(5.8px);background:color-mix(in oklab, var(--arm) 62%, #000)"></i><i style="width:4.02px;height:12px;margin:-6px 0 0 -2.01px;transform:rotateY(180deg) translateZ(5.8px);background:color-mix(in oklab, var(--arm) 62%, #000)"></i><i style="width:4.02px;height:12px;margin:-6px 0 0 -2.01px;transform:rotateY(210deg) translateZ(5.8px);background:color-mix(in oklab, var(--arm) 62%, #000)"></i><i style="width:4.02px;height:12px;margin:-6px 0 0 -2.01px;transform:rotateY(240deg) translateZ(5.8px);background:color-mix(in oklab, var(--arm) 62%, #000)"></i><i style="width:4.02px;height:12px;margin:-6px 0 0 -2.01px;transform:rotateY(270deg) translateZ(5.8px);background:color-mix(in oklab, var(--arm) 79%, #000)"></i><i style="width:4.02px;height:12px;margin:-6px 0 0 -2.01px;transform:rotateY(300deg) translateZ(5.8px);background:color-mix(in oklab, var(--arm) 94%, #000)"></i><i style="width:4.02px;height:12px;margin:-6px 0 0 -2.01px;transform:rotateY(330deg) translateZ(5.8px);background:color-mix(in oklab, var(--arm) 100%, #000)"></i><i class="cap" style="width:12px;height:12px;margin:-6px 0 0 -6px;transform:rotateX(90deg) translateZ(6px);--cc:var(--arm)"></i><i class="cap" style="width:12px;height:12px;margin:-6px 0 0 -6px;transform:rotateX(-90deg) translateZ(6px);--cc:var(--arm)"></i></div>
+                            <div class="b3 round" style="--w:30px;--h:4px;--d:18px;--x:0px;--y:-12px;--z:0px;--c:var(--grip)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                            <div class="b3 round" style="--w:44px;--h:5px;--d:22px;--x:0px;--y:-8.5px;--z:0px;--c:var(--grip)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                            <div class="g3 n3-jaw-l"><div class="b3" style="--w:3px;--h:14px;--d:20px;--x:-19.5px;--y:-1px;--z:0px;--c:var(--grip)"><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+                            <div class="g3 n3-jaw-r"><div class="b3" style="--w:3px;--h:14px;--d:20px;--x:19.5px;--y:-1px;--z:0px;--c:var(--grip)"><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+                            <div class="b3 pack3d n3-grip-old" style="--w:36px;--h:12px;--d:26px;--x:0px;--y:0px;--z:0px;--c:var(--color-error, #e5484d)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                            <div class="b3 pack3d n3-grip-new" style="--w:36px;--h:12px;--d:26px;--x:0px;--y:0px;--z:0px;--c:var(--color-success, #22a06b)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
