@@ -17,6 +17,10 @@
     var m;
     try { m = localStorage.getItem("ns-motion"); } catch (e) {}
     if (m === "off") document.documentElement.classList.add("still");
+    // The 3D station is an easter egg (see "Easter egg" in the main script); show it before first paint if it was unlocked.
+    var l;
+    try { l = localStorage.getItem("ns-lab"); } catch (e) {}
+    if (l === "1") document.documentElement.classList.add("lab");
     try { t = localStorage.getItem("ns-theme"); } catch (e) {}
     if (t === "dark") t = "night";
     if (t === "night") {
@@ -236,11 +240,13 @@
      visitor pauses animations with the nav toggle; animations are on by default),
      and content never depends on JavaScript: scroll reveals only hide things once the "js" class is present. */
 
-  /* Hero layout: copy on the left, animated illustration on the right (stacked on small screens) */
+  /* Hero layout: copy on the left, animated illustration on the right (stacked on small screens).
+     The illustration is hidden until unlocked (html.lab, an easter egg; see the main script). */
   .hero-grid { display: grid; gap: 40px; align-items: center; }
-  .hero-visual { width: 100%; max-width: 440px; justify-self: center; }
+  .hero-visual { display: none; width: 100%; max-width: 440px; justify-self: center; }
+  html.lab .hero-visual { display: block; }
   @media (min-width: 960px) {
-    .hero-grid { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); }
+    html.lab .hero-grid { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); }
     .hero-section h1 { font-size: clamp(3rem, 7vw, 5.5rem); }
   }
 
@@ -1262,7 +1268,7 @@
   @media print { html.js .reveal { opacity: 1; transform: none; } }
 
   /* ============================== Easter egg: RGB mode ==============================
-     The Konami code, typing "rgb", or tapping the logo five times toggles html[data-rgb] for this visit.
+     Once the 3D station has been unlocked (Konami code or five logo taps, html.lab), typing "rgb" toggles html[data-rgb] for this visit.
      Every accent on the site derives from --color-primary / --color-secondary, so cycling their hue recolors the title,
      buttons, labels, cards, progress line and 3D scene. The hue turns at a fixed perceptual lightness per theme (oklch),
      so text contrast holds at every hue. With motion off (html.still) the hue shifts once instead of cycling. */
@@ -1796,7 +1802,7 @@
   </div>
 </footer>
 
-<!-- psst: there's an easter egg. Try the Konami code (up up down down left right left right B A), or just type "rgb". -->
+<!-- psst: there's an easter egg. Try the Konami code (up up down down left right left right B A), then type "rgb". -->
 <div class="egg-toast" id="eggToast" role="status" aria-live="polite"></div>
 
 <script>
@@ -2037,21 +2043,30 @@ const RESOURCES = [
     }).observe(heroVisual);
   }
 
-  /* ============================== Easter egg: RGB mode ============================== */
-  // The Konami code, typing "rgb", or tapping the logo five times quickly toggles a hue-cycling theme for this visit.
+  /* ============================== Easter eggs ============================== */
+  // Level 1: the Konami code or five quick logo taps unlock the hidden 3D station (remembered; repeat to hide it again).
+  // Level 2: once it is unlocked, typing "rgb" toggles a hue-cycling theme for this visit.
   var toast = $("eggToast"), toastTimer;
   var showToast = function (msg) {
     toast.textContent = msg; toast.classList.add("show");
     clearTimeout(toastTimer); toastTimer = setTimeout(function () { toast.classList.remove("show"); }, 2800);
   };
+  var toggleLab = function () {
+    var on = root.classList.toggle("lab");
+    try { localStorage.setItem("ns-lab", on ? "1" : "0"); } catch (e) {}
+    if (on) document.querySelector(".hero-visual").scrollIntoView({ block: "center" });
+    else root.removeAttribute("data-rgb"); // hiding the station ends RGB mode too
+    showToast(on ? "Station unlocked. Psst: now try typing \"rgb\"." : "Station hidden.");
+  };
   var toggleRgb = function () {
+    if (!root.classList.contains("lab")) return; // level 2 only opens after level 1
     var on = !root.hasAttribute("data-rgb");
     if (on) root.setAttribute("data-rgb", ""); else root.removeAttribute("data-rgb");
     showToast(on ? "RGB mode on. Do it again to turn it off." : "RGB mode off.");
   };
   var CODES = [
-    ["arrowup", "arrowup", "arrowdown", "arrowdown", "arrowleft", "arrowright", "arrowleft", "arrowright", "b", "a"],
-    ["r", "g", "b"]
+    { keys: ["arrowup", "arrowup", "arrowdown", "arrowdown", "arrowleft", "arrowright", "arrowleft", "arrowright", "b", "a"], run: toggleLab },
+    { keys: ["r", "g", "b"], run: toggleRgb }
   ];
   var recent = [];
   document.addEventListener("keydown", function (e) {
@@ -2061,8 +2076,8 @@ const RESOURCES = [
     recent.push((e.key || "").toLowerCase());
     if (recent.length > 10) recent.shift();
     CODES.forEach(function (code) {
-      var tail = recent.slice(-code.length);
-      if (tail.length === code.length && tail.every(function (k, i) { return k === code[i]; })) { recent = []; toggleRgb(); }
+      var tail = recent.slice(-code.keys.length);
+      if (tail.length === code.keys.length && tail.every(function (k, i) { return k === code.keys[i]; })) { recent = []; code.run(); }
     });
   });
   var taps = [];
@@ -2070,9 +2085,9 @@ const RESOURCES = [
     var now = Date.now();
     taps = taps.filter(function (t) { return now - t < 1500; });
     taps.push(now);
-    if (taps.length >= 5) { taps = []; toggleRgb(); }
+    if (taps.length >= 5) { taps = []; toggleLab(); }
   });
-  try { console.log("%cNodeStation%c  psst: try the Konami code (↑ ↑ ↓ ↓ ← → ← → B A), or just type \"rgb\".", "font: 700 14px Outfit, sans-serif; color: #0069ff", "color: inherit"); } catch (e) {}
+  try { console.log("%cNodeStation%c  psst: try the Konami code (↑ ↑ ↓ ↓ ← → ← → B A), then type \"rgb\".", "font: 700 14px Outfit, sans-serif; color: #0069ff", "color: inherit"); } catch (e) {}
 })();
 </script>
 </body>
