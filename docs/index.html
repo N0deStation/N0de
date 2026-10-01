@@ -1319,6 +1319,46 @@
   @keyframes cat-tail { from { rotate: -18deg; } to { rotate: 24deg; } }
   @keyframes cat-step { 50% { translate: 0 -2px; } }
   @keyframes note-float { 0% { opacity: 0; translate: 0 4px; } 20% { opacity: 1; } 100% { opacity: 0; translate: 0 -20px; } }
+  /* RGB mode bonus: the drone becomes a pigeon. It flies the drone's path, wears the battery on its back like a saddlebag
+     (so the arm's swap is unchanged), flaps in flight, folds its wings when parked, and bobs its head. Its neck shimmers
+     with the RGB accent. The cat rides on its back. */
+  @property --flap { syntax: "<number>"; inherits: true; initial-value: 0; }  /* 1 = flying, 0 = wings folded */
+  @property --osc { syntax: "<number>"; inherits: false; initial-value: 0; }  /* wingbeat position, 0..1 */
+  .pigeon3d { display: none; --pg-body: #8f9bb2; --pg-head: #9ba7be; --pg-wing: #aab4c6; --pg-bar: #3d4454; --pg-dark: #586274;
+    --pg-leg: #e0667f; --pg-neck: color-mix(in oklab, var(--accent) 55%, #6c7b90); }
+  :root[data-rgb] .pigeon3d { display: block; }
+  :root[data-rgb] .n3-drone > :not(.pack3d):not(.party-cat):not(.pigeon3d) { display: none; } /* hide the drone's own parts */
+  :root[data-rgb] .party-cat { translate: 0 -38px 0px; } /* the cat stands on the pigeon's back */
+  .pigeon3d .b3 > i { border-radius: 32%; }
+  .pg-head { animation: pg-bob .7s ease-in-out infinite; }
+  .pg-eye { position: absolute; left: 0; top: 0; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; rotate: y 90deg;
+    translate: var(--x) var(--y) var(--z); background: radial-gradient(circle, #111 0 34%, #f08a24 38% 70%, #3d4454 74%); }
+  .pg-tail { --fw: 24px; --fh: 26px; --y: -20px; --z: -28px; border-radius: 10px 10px 40% 40% / 10px 10px 60% 60%;
+    background: linear-gradient(to bottom, var(--pg-wing) 0 62%, var(--pg-bar) 62% 78%, var(--pg-dark) 78%); }
+  .pg-wing { rotate: z calc(((1 - var(--flap)) * 25 + var(--flap) * (var(--osc) * 70 - 40)) * 1deg);
+    animation: pg-flap 24s linear infinite, pg-beat .17s ease-in-out infinite alternate; }
+  .pg-wing-l { rotate: z calc(((1 - var(--flap)) * 25 + var(--flap) * (var(--osc) * 70 - 40)) * -1deg); }
+  .pg-wing > i { position: absolute; left: 0; top: 0; width: 42px; height: 32px; margin-top: -16px; rotate: x 90deg;
+    scale: calc(.42 + .58 * var(--flap)) 1; transform-origin: 0 50%; border-radius: 4px 70% 55% 4px / 4px 60% 60% 4px;
+    background: linear-gradient(90deg, var(--pg-wing) 0 52%, var(--pg-bar) 52% 59%, var(--pg-wing) 59% 68%, var(--pg-bar) 68% 75%, var(--pg-dark) 75%); }
+  .pg-wing-l > i { margin-left: -42px; transform-origin: 100% 50%; border-radius: 70% 4px 4px 55% / 60% 4px 4px 60%;
+    background: linear-gradient(270deg, var(--pg-wing) 0 52%, var(--pg-bar) 52% 59%, var(--pg-wing) 59% 68%, var(--pg-bar) 68% 75%, var(--pg-dark) 75%); }
+  @keyframes pg-flap {
+    0% { --flap: 1; }
+    8.2% { --flap: 1; }
+    9.6% { --flap: 0; }
+    40.6% { --flap: 0; }
+    41.6% { --flap: 1; }
+    49.9% { --flap: 1; }
+    50% { --flap: 1; }
+    58.2% { --flap: 1; }
+    59.6% { --flap: 0; }
+    90.6% { --flap: 0; }
+    91.6% { --flap: 1; }
+    99.9% { --flap: 1; }
+  }
+  @keyframes pg-beat { to { --osc: 1; } }
+  @keyframes pg-bob { 0%, 100% { translate: 0 0 0; } 40% { translate: 0 1px 4px; } }
 
   /* No motion (html.still, set by the head script when the visitor has paused animations with the nav toggle):
      no animation or transitions anywhere; the illustration shows its static landed frame.
@@ -1520,7 +1560,27 @@
                 <div class="b3" style="--w:4px;--h:23px;--d:4px;--x:-23px;--y:-15px;--z:-18px;--c:var(--frame);--rz:15deg"><i></i><i></i><i></i><i></i><i></i><i></i></div>
                 <div class="b3 round" style="--w:4px;--h:4px;--d:66px;--x:26px;--y:-2px;--z:0px;--c:var(--frame)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
                 <div class="b3 round" style="--w:4px;--h:4px;--d:66px;--x:-26px;--y:-2px;--z:0px;--c:var(--frame)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
-                <!-- easter egg (RGB mode): a cat dancing on the drone's canopy -->
+                <!-- easter egg (RGB mode): the drone becomes a pigeon, wearing the battery on its back like a saddlebag -->
+                <div class="g3 pigeon3d" aria-hidden="true">
+                  <div class="b3" style="--w:36px;--h:24px;--d:46px;--x:0px;--y:-26px;--z:6px;--c:var(--pg-body)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                  <div class="b3" style="--w:30px;--h:22px;--d:18px;--x:0px;--y:-31px;--z:24px;--c:var(--pg-neck)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                  <div class="b3" style="--w:15px;--h:14px;--d:13px;--x:0px;--y:-42px;--z:28px;--c:var(--pg-neck)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                  <div class="g3 pg-head">
+                    <div class="b3" style="--w:18px;--h:15px;--d:18px;--x:0px;--y:-50px;--z:31px;--c:var(--pg-head)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                    <div class="b3" style="--w:4px;--h:3px;--d:9px;--x:0px;--y:-48px;--z:43px;--c:#2b2f36"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                    <div class="b3" style="--w:5px;--h:2px;--d:3px;--x:0px;--y:-50.5px;--z:40.5px;--c:#e9ecf2"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                    <div class="pg-eye" style="--x:-9.3px;--y:-51px;--z:34px"></div>
+                    <div class="pg-eye" style="--x:9.3px;--y:-51px;--z:34px"></div>
+                  </div>
+                  <div class="flat pg-tail"></div>
+                  <div class="g3 pg-wing pg-wing-l" style="--x:-17px;--y:-36px;--z:5px"><i></i></div>
+                  <div class="g3 pg-wing pg-wing-r" style="--x:17px;--y:-36px;--z:5px"><i></i></div>
+                  <div class="b3" style="--w:3px;--h:14px;--d:3px;--x:-8px;--y:-7px;--z:12px;--c:var(--pg-leg)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                  <div class="b3" style="--w:3px;--h:14px;--d:3px;--x:8px;--y:-7px;--z:12px;--c:var(--pg-leg)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                  <div class="b3" style="--w:8px;--h:2px;--d:10px;--x:-8px;--y:-1px;--z:14px;--c:var(--pg-leg)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                  <div class="b3" style="--w:8px;--h:2px;--d:10px;--x:8px;--y:-1px;--z:14px;--c:var(--pg-leg)"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                </div>
+                <!-- easter egg (RGB mode): a cat dancing on the pigeon's back -->
                 <div class="party-cat" aria-hidden="true">
                   <svg viewBox="0 0 44 52">
                     <g class="cat-body">
