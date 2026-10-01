@@ -13,6 +13,11 @@
   document.documentElement.classList.add("js"); // lets CSS hide scroll-reveal content only when JS can show it again
   (function () {
     var t;
+    // Motion: the visitor's saved choice wins; otherwise follow the OS reduced-motion preference.
+    var m;
+    try { m = localStorage.getItem("ns-motion"); } catch (e) {}
+    if (m === "off" || (m !== "on" && window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches))
+      document.documentElement.classList.add("still");
     try { t = localStorage.getItem("ns-theme"); } catch (e) {}
     if (t === "dark") t = "night";
     if (t === "night") {
@@ -105,9 +110,9 @@
   .nav .menu { flex-wrap: nowrap; padding: 0; gap: 2px; --menu-active-bg: var(--surface-2); --menu-active-fg: var(--text); }
   .nav .menu a { color: var(--muted); white-space: nowrap; font-size: .875rem; }
   .nav .menu a[aria-current="true"] { color: var(--text); }
-  .theme-btn { flex: none; }
-  .theme-btn svg { width: 18px; height: 18px; }
-  @media (max-width: 860px) { .nav nav { display: none; } .theme-btn { margin-left: auto; } }
+  .theme-btn, .motion-btn { flex: none; }
+  .theme-btn svg, .motion-btn svg { width: 18px; height: 18px; }
+  @media (max-width: 900px) { .nav nav { display: none; } .motion-btn { margin-left: auto; } }
 
   /* Sections alternate base-100 / base-200 panels, like daisyui.com; cards flip to contrast with their panel */
   section { padding-block: 88px; }
@@ -228,7 +233,8 @@
   @media (max-width: 560px) { section { padding-block: 64px; } .hero-section { padding-block: 64px 56px; } }
 
   /* ============================== Motion ==============================
-     Transform/opacity only, no libraries. Everything is switched off under prefers-reduced-motion (bottom of this block),
+     Transform/opacity only, no libraries. Everything is switched off under html.still (bottom of this block; set from the
+     nav toggle, else prefers-reduced-motion),
      and content never depends on JavaScript: scroll reveals only hide things once the "js" class is present. */
 
   /* Hero layout: copy on the left, animated illustration on the right (stacked on small screens) */
@@ -259,7 +265,7 @@
   @keyframes drift { from { transform: translate3d(-4%, 0, 0) scale(1); } to { transform: translate3d(6%, 5%, 0) scale(1.12); } }
 
   /* 3D hero illustration (CSS 3D transforms, generated from one schedule; see the HTML comment in .hero-visual).
-     Base styles are the static frame used with reduced motion: the drone on pad 1 with its charged pack installed,
+     Base styles are the static frame used with no motion (html.still): the drone on pad 1 with its charged pack installed,
      the arm parked over the rack, and the received pack charging in slot 2.
      Boxes are only moved with translate/rotate/visibility, never opacity, which would flatten their 3D faces. */
   @property --c { syntax: "<color>"; inherits: true; initial-value: #888; } /* lets pack colors animate as they charge */
@@ -1025,12 +1031,19 @@
 
   @media print { html.js .reveal { opacity: 1; transform: none; } }
 
-  /* Reduced motion: no animation or transitions anywhere; the illustration shows its static landed frame */
+  /* No motion (html.still, set by the head script from the visitor's toggle, else the OS reduced-motion preference):
+     no animation or transitions anywhere; the illustration shows its static landed frame.
+     Without JS, the media query below still protects reduced-motion visitors. */
+  html.still { scroll-behavior: auto; }
+  html.still *, html.still *::before, html.still *::after { animation: none !important; transition: none !important; }
+  html.still.js .reveal { opacity: 1; transform: none; }
   @media (prefers-reduced-motion: reduce) {
-    html { scroll-behavior: auto; }
-    *, *::before, *::after { animation: none !important; transition: none !important; }
-    html.js .reveal { opacity: 1; transform: none; }
+    html:not(.js) { scroll-behavior: auto; }
+    html:not(.js) *, html:not(.js) *::before, html:not(.js) *::after { animation: none !important; transition: none !important; }
   }
+  html:not(.js) .motion-btn { display: none; }
+  /* Turning motion back on mid-page shouldn't replay the hero entrance (rise starts at opacity 0) */
+  html.resumed .hero-copy > *, html.resumed .hero-visual { animation-name: none; }
 </style>
 </head>
 <body>
@@ -1051,6 +1064,9 @@
         <li><a href="#resources">Resources</a></li>
       </ul>
     </nav>
+    <button class="btn btn-ghost btn-circle btn-sm motion-btn" id="motionBtn" type="button" aria-label="Animations" aria-pressed="true" title="Pause animations">
+      <svg id="motionIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"></svg>
+    </button>
     <button class="btn btn-ghost btn-circle btn-sm theme-btn" id="themeBtn" type="button" aria-label="Toggle light or dark theme">
       <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"></svg>
     </button>
@@ -1430,6 +1446,7 @@ const RESOURCES = [
     image: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/>',
     slides: '<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>',
     play: '<path d="m8 5 11 7-11 7z"/>',
+    pause: '<path d="M9 5v14M15 5v14"/>',
     code: '<path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/>',
     sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
     moon: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
@@ -1458,8 +1475,7 @@ const RESOURCES = [
   };
   $("themeBtn").addEventListener("click", function () {
     var next = current() === "night" ? "winter" : "night";
-    var still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (!document.startViewTransition || still) { applyTheme(next); return; }
+    if (!document.startViewTransition || isStill()) { applyTheme(next); return; }
     // Reveal the new theme in a circle growing from the toggle button.
     var r = this.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2;
     var radius = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
@@ -1469,6 +1485,27 @@ const RESOURCES = [
     }).catch(function () {});
   });
   paintIcon();
+
+  // Motion toggle: starts from the OS reduced-motion preference; the visitor's choice is remembered.
+  var isStill = function () { return root.classList.contains("still"); };
+  var paintMotion = function () {
+    $("motionIcon").innerHTML = isStill() ? ICONS.play : ICONS.pause;
+    $("motionBtn").setAttribute("aria-pressed", String(!isStill()));
+    $("motionBtn").title = isStill() ? "Play animations" : "Pause animations";
+  };
+  $("motionBtn").addEventListener("click", function () {
+    root.classList.toggle("still");
+    if (!isStill()) root.classList.add("resumed");
+    try { localStorage.setItem("ns-motion", isStill() ? "off" : "on"); } catch (e) {}
+    paintMotion();
+  });
+  // Follow live OS changes until the visitor picks for themselves
+  var motionMQ = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)");
+  if (motionMQ && motionMQ.addEventListener) motionMQ.addEventListener("change", function (e) {
+    var saved; try { saved = localStorage.getItem("ns-motion"); } catch (err) {}
+    if (!saved) { root.classList.toggle("still", e.matches); paintMotion(); }
+  });
+  paintMotion();
 
   // Hero: team names
   var named = TEAM.filter(function (m) { return !isTodo(m.name); });
@@ -1552,7 +1589,7 @@ const RESOURCES = [
   }
 
   /* ============================== Motion ============================== */
-  var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var reduceMotion = isStill(); // html.still: the visitor's toggle, else the OS reduced-motion preference
 
   // Stat numbers count up once, when their panel scrolls into view. The final text is always restored exactly.
   var countUp = function (scope) {
@@ -1562,7 +1599,7 @@ const RESOURCES = [
       var target = parseFloat(m[1]), rest = m[2], decimals = target < 10 ? 1 : 0, start = null, dur = 1400;
       var frame = function (t) {
         if (start === null) start = t;
-        var p = Math.min((t - start) / dur, 1), eased = 1 - Math.pow(1 - p, 3);
+        var p = isStill() ? 1 : Math.min((t - start) / dur, 1), eased = 1 - Math.pow(1 - p, 3);
         el.textContent = p < 1 ? (target * eased).toFixed(decimals) + rest : finalText;
         if (p < 1) requestAnimationFrame(frame);
       };
@@ -1570,7 +1607,8 @@ const RESOURCES = [
     });
   };
 
-  // Scroll reveal: fade content up as it enters the viewport, staggering siblings. Skipped entirely for reduced motion.
+  // Scroll reveal: fade content up as it enters the viewport, staggering siblings. Skipped entirely when motion is off.
+  // ponytail: set up once on load, so turning motion on mid-page skips reveals until reload (content is already visible).
   if (!reduceMotion && "IntersectionObserver" in window) {
     var revealTargets = document.querySelectorAll([
       "main > section:not(.hero-section) .eyebrow", "main > section:not(.hero-section) h2", ".lead", ".pull", ".subhead",
