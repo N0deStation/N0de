@@ -18,6 +18,8 @@
     try { m = localStorage.getItem("ns-motion"); } catch (e) {}
     if (m === "off") document.documentElement.classList.add("still");
     // The 3D station is an easter egg (see "Easter egg" in the main script); show it before first paint if it was unlocked.
+    // Work in progress (TODOs) is hidden; add ?todos to the address to show it, e.g. for a team review.
+    if (/[?&]todos(=|&|$)/.test(location.search)) document.documentElement.classList.add("show-todos");
     var l;
     try { l = localStorage.getItem("ns-lab"); } catch (e) {}
     if (l === "1") document.documentElement.classList.add("lab");
@@ -98,6 +100,10 @@
     border-style: dashed; border-color: var(--todo); border-radius: var(--radius-sm);
   }
   [data-theme="winter"] .todo.badge { --todo: oklch(52% 0.13 65); color: var(--todo); } /* winter's warning is too pale to read on white */
+  /* Work in progress stays hidden until it's ready: every TODO badge, plus anything marked data-todo (the Demo, How it works
+     and Results sections and their nav links; hero buttons and resource cards whose files aren't in yet).
+     Add ?todos to the page address to show it all again. To publish a section, remove its data-todo attribute. */
+  html:not(.show-todos) .todo, html:not(.show-todos) [data-todo] { display: none !important; }
   .todo-block { display: flex; width: fit-content; margin-top: .6em; }
 
   /* Nav (daisyUI navbar + horizontal menu) */
@@ -120,6 +126,17 @@
   /* Sections alternate base-100 / base-200 panels, like daisyui.com; cards flip to contrast with their panel */
   section { padding-block: 88px; }
   main > section:nth-of-type(even) {
+    background: var(--bg-alt); --card-bg: var(--bg);
+    --line: color-mix(in oklab, var(--text) 14%, var(--bg-alt));
+    --muted: color-mix(in oklab, var(--text) 82%, var(--bg-alt));
+  }
+  /* With work-in-progress sections hidden, keep the stripes alternating over the sections that are actually shown */
+  html:not(.show-todos) main > section:nth-child(odd of :not([data-todo])) {
+    background: none; --card-bg: var(--bg-alt);
+    --line: color-mix(in oklab, var(--text) 14%, var(--bg));
+    --muted: color-mix(in oklab, var(--text) 82%, var(--bg));
+  }
+  html:not(.show-todos) main > section:nth-child(even of :not([data-todo])) {
     background: var(--bg-alt); --card-bg: var(--bg);
     --line: color-mix(in oklab, var(--text) 14%, var(--bg-alt));
     --muted: color-mix(in oklab, var(--text) 82%, var(--bg-alt));
@@ -1391,9 +1408,9 @@
       <ul class="menu menu-horizontal menu-sm">
         <li><a href="#problem">Mission</a></li>
         <li><a href="#solution">Solution</a></li>
-        <li><a href="#demo">Demo</a></li>
-        <li><a href="#how">How it works</a></li>
-        <li><a href="#results">Results</a></li>
+        <li data-todo><a href="#demo">Demo</a></li>
+        <li data-todo><a href="#how">How it works</a></li>
+        <li data-todo><a href="#results">Results</a></li>
         <li><a href="#team">Team</a></li>
         <li><a href="#survey">Survey</a></li>
         <li><a href="#resources">Resources</a></li>
@@ -1699,7 +1716,7 @@
   </section>
 
   <!-- 4. DEMO -->
-  <section id="demo">
+  <section id="demo" data-todo>
     <div class="wrap">
       <p class="eyebrow">Demo</p>
       <h2>See it in action</h2>
@@ -1709,7 +1726,7 @@
   </section>
 
   <!-- 5. HOW IT WORKS -->
-  <section id="how">
+  <section id="how" data-todo>
     <div class="wrap">
       <p class="eyebrow">How it works</p>
       <h2>System architecture</h2>
@@ -1732,7 +1749,7 @@
   </section>
 
   <!-- 6. RESULTS -->
-  <section id="results">
+  <section id="results" data-todo>
     <div class="wrap">
       <p class="eyebrow">Results</p>
       <h2>Testing &amp; outcomes</h2>
@@ -1917,6 +1934,7 @@ const RESOURCES = [
     $("heroReport").classList.add("btn-disabled");
     $("heroReport").setAttribute("aria-disabled", "true");
     $("heroReport").setAttribute("tabindex", "-1");
+    $("heroReport").setAttribute("data-todo", ""); // hidden until the report is in
     $("heroReport").insertAdjacentHTML("beforeend", " " + todo("TODO"));
   }
 
@@ -1927,6 +1945,7 @@ const RESOURCES = [
     $("heroVideo").rel = "noopener";
   } else {
     $("heroVideo").insertAdjacentHTML("beforeend", " " + todo("TODO"));
+    $("heroVideo").setAttribute("data-todo", ""); // hidden until there's a demo video
   }
 
   // Demo video: privacy-enhanced embed, only loaded when an ID is set
@@ -1968,7 +1987,7 @@ const RESOURCES = [
       (r.ready ? "" : todo("TODO")) + "<small>" + esc(r.desc) + "</small></div></div>";
     return r.ready
       ? '<a class="card res" href="' + esc(r.href) + '"' + (external ? ' target="_blank" rel="noopener"' : "") + ">" + inner + "</a>"
-      : '<div class="card res">' + inner + "</div>";
+      : '<div class="card res" data-todo>' + inner + "</div>"; // hidden until the file is in
   }).join("");
 
   // Highlight the nav link for the section in view (daisyUI menu styles aria-current as active)
