@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>NodeStation | CPE 423 Senior Design</title>
-<meta name="description" content="NodeStation: an autonomous ground station that lands drones, swaps their batteries mechanically, and recharges the used packs.">
+<title>NodeStations | CPE 423 Senior Design</title>
+<meta name="description" content="NodeStations: an autonomous ground station that lands drones, swaps their batteries mechanically, and recharges the used packs.">
 <meta name="color-scheme" content="light">
 <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
 <script>
@@ -1403,7 +1403,7 @@
 
 <header class="nav navbar">
   <div class="wrap">
-    <a class="brand" href="#top"><img src="assets/logo.svg" alt="" width="28" height="28">NodeStation</a>
+    <a class="brand" href="#top"><img src="assets/logo.svg" alt="" width="28" height="28">NodeStations</a>
     <nav aria-label="Sections">
       <ul class="menu menu-horizontal menu-sm">
         <li><a href="#problem">Mission</a></li>
@@ -1432,7 +1432,7 @@
     <div class="wrap hero-grid">
       <div class="hero-copy">
       <p class="eyebrow">CPE 423 Senior Design</p>
-      <h1><span class="grad">NodeStation</span></h1>
+      <h1><span class="grad">NodeStations</span></h1>
       <p class="tagline">An autonomous ground station that lands drones, swaps their batteries mechanically, and recharges the used packs, so drone fleets can keep operating without human intervention.</p>
       <div class="meta">
         <span class="badge badge-outline"><strong>Stevens Institute of Technology</strong></span>
@@ -1814,7 +1814,7 @@
 
 <footer>
   <div class="wrap">
-    <span>NodeStation · CPE 423 Senior Design · Stevens Institute of Technology · 2026–2027</span>
+    <span>NodeStations · CPE 423 Senior Design · Stevens Institute of Technology · 2026–2027</span>
     <span>Built with plain HTML, CSS &amp; JS · styled with daisyUI</span>
   </div>
 </footer>
@@ -1950,13 +1950,13 @@ const RESOURCES = [
 
   // Demo video: privacy-enhanced embed, only loaded when an ID is set
   $("video").innerHTML = DEMO_VIDEO_ID
-    ? '<iframe src="https://www.youtube-nocookie.com/embed/' + encodeURIComponent(DEMO_VIDEO_ID) + '" title="NodeStation demo video" loading="lazy" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen></iframe>'
+    ? '<iframe src="https://www.youtube-nocookie.com/embed/' + encodeURIComponent(DEMO_VIDEO_ID) + '" title="NodeStations demo video" loading="lazy" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen></iframe>'
     : '<div><div class="play">' + svg("play") + "</div>" + todo("TODO: set DEMO_VIDEO_ID to embed the demo video") + "</div>";
 
   // Gallery
   $("gallery").innerHTML = GALLERY.length
     ? GALLERY.map(function (g) {
-        return '<figure><img src="' + esc(g.src) + '" alt="' + esc(g.caption || "NodeStation demo screenshot") + '" loading="lazy">' +
+        return '<figure><img src="' + esc(g.src) + '" alt="' + esc(g.caption || "NodeStations demo screenshot") + '" loading="lazy">' +
           (g.caption ? "<figcaption>" + esc(g.caption) + "</figcaption>" : "") + "</figure>";
       }).join("")
     : [1, 2, 3].map(function () { return '<figure><div class="shot-ph">' + todo("TODO: screenshot or GIF") + "</div></figure>"; }).join("");
@@ -2106,7 +2106,7 @@ const RESOURCES = [
     taps.push(now);
     if (taps.length >= 5) { taps = []; toggleLab(); }
   });
-  try { console.log("%cNodeStation%c  psst: try the Konami code (↑ ↑ ↓ ↓ ← → ← → B A), then type \"rgb\".", "font: 700 14px Outfit, sans-serif; color: #0069ff", "color: inherit"); } catch (e) {}
+  try { console.log("%cNodeStations%c  psst: try the Konami code (↑ ↑ ↓ ↓ ← → ← → B A), then type \"rgb\".", "font: 700 14px Outfit, sans-serif; color: #0069ff", "color: inherit"); } catch (e) {}
 })();
 </script>
 </body>

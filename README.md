@@ -1,4 +1,4 @@
-# NodeStation
+# NodeStations
 
 An autonomous ground station that lands drones, swaps their batteries mechanically, and recharges the used packs, so drone fleets can keep operating without human intervention.
 
